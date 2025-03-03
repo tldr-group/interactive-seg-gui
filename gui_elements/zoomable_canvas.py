@@ -44,7 +44,7 @@ class CanvasImage:
         self.imscale = 1.0  # scale for the canvas image zoom, public for outer classes
         self.__delta = 1.3  # zoom magnitude
         self.__filter = (
-            Image.LANCZOS
+            Image.NEAREST
         )  # could be: NEAREST, BILINEAR, BICUBIC and ANTIALIAS
         self.__previous_state = 0  # previous state of the keyboard
         # Create ImageFrame in placeholder widget
