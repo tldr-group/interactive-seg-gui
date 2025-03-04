@@ -134,3 +134,11 @@ class DataModel(object):
         )
         piece.labels.append(label)
         piece.labelled = True
+
+    def remove_last_label(self, piece_idx: int) -> None:
+        piece = self.gallery[piece_idx]
+        label = piece.labels[-1]
+        piece.labels_arr -= label.diff
+
+        if len(piece.labels) == 0:
+            piece.labelled = False

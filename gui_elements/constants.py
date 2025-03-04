@@ -26,7 +26,7 @@ SIDE_COL: int = 2
 
 MIN_TIME: float = 0.07
 
-MessageTypes = Literal["NOTIF", "TRAIN", "SEGMENT", "POINTS"]
+MessageTypes = Literal["NOTIF", "TRAIN", "SEGMENT", "POINTS", "UNDO"]
 ProgressTypes = Literal["start", "stop", "progress", "N/A"]
 
 

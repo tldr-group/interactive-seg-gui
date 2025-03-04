@@ -140,6 +140,11 @@ class App(ttk.Frame):
             self.canvas.brush_width,
         )
 
+    def remove_last_label(self) -> None:
+        self.data_model.remove_last_label(
+            self.data_model.current_piece_idx,
+        )
+
     def get_img_from_seg(
         self, train_result: np.ndarray, cmap: ListedColormap, alpha_mask: np.ndarray
     ) -> Image.Image:
@@ -194,6 +199,8 @@ class App(ttk.Frame):
                 if len(points) == 0:
                     return
                 self.add_label(points)
+            case "UNDO":
+                self.remove_last_label()
             case _:
                 raise Exception(f"Undefined message type {header}")
 

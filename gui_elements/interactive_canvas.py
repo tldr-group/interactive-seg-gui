@@ -41,6 +41,7 @@ class InteractiveCanvas(CanvasImage):
         self.canvas.bind("<Motion>", self.mouse_motion)
         self.canvas.bind("<B1-Motion>", self.mouse_motion_while_click)
         self.canvas.bind("<ButtonRelease-1>", self.mouse_release)
+        self.canvas.bind("<Control-z>", self.undo)
 
         self.canvas.bind("<Escape>", self.cancel)
         # self.canvas.bind("<Delete>", self.delete)
@@ -81,6 +82,10 @@ class InteractiveCanvas(CanvasImage):
         """On esc key, cancel current label and delete in progress drawings on canvas."""
         self.canvas.delete("in_progress")
         self.current_label_frac_points = []
+
+    def undo(self, _event: tk.Event) -> None:
+        msg = Message("UNDO", None)
+        self.queue.put(msg)
 
     # TODO: delete button that wipes all labels
 
