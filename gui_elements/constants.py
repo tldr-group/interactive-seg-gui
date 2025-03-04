@@ -14,13 +14,14 @@ COLOURS: list[str] = [
     "#bcbd22",
     "#17becf",
 ]
-CANVAS_W: int = 850
-CANVAS_H: int = 1200
+CANVAS_W: int = 900
+CANVAS_H: int = 600
 CANVAS_H_GRID: int = 5
 CANVAS_W_GRID: int = 1
 
 PAD: int = 10
 MENU_BAR_ROW: int = 0
+SIDE_BAR_COL: int = 0
 SIDE_COL: int = 2
 
 MIN_TIME: float = 0.07

@@ -3,7 +3,7 @@ from queue import Queue
 from PIL import Image
 
 from gui_elements.zoomable_canvas import CanvasImage
-from gui_elements.constants import Message
+from gui_elements.constants import Message, COLOURS
 
 
 class InteractiveCanvas(CanvasImage):
@@ -24,18 +24,19 @@ class InteractiveCanvas(CanvasImage):
     ):
         """Init the canvas and bind all the keypresses."""
         super(InteractiveCanvas, self).__init__(parent)
-
+        self.parent = parent
         self.queue = out_queue
 
+        self.current_img_hw = (10, 10)
         self.image_available = False
         if initial_img is not None:
             self.set_current_image(initial_img, True)
             self.image_available = True
 
+        self.label_val: int = 1
         self.brush_width = 5
 
-        self.fill_colour: str = "red"  # self.app.class_colours[1]
-        self.current_img_hw = (10, 10)
+        self.fill_colour: str = COLOURS[self.label_val]  # self.app.class_colours[1]
 
         self.current_label_frac_points: list[tuple[float, float]] = []
 
@@ -50,6 +51,10 @@ class InteractiveCanvas(CanvasImage):
 
         for i in range(10):
             self.canvas.bind(f"{i}", self._num_key_press)
+
+    def set_current_image(self, pil_image, new=False):
+        super().set_current_image(pil_image, new)
+        self.current_img_hw = (pil_image.height, pil_image.width)
 
     def mouse_motion_while_click(self, event: tk.Event) -> None:
         """For brush type labelling."""
@@ -76,7 +81,9 @@ class InteractiveCanvas(CanvasImage):
 
     def _num_key_press(self, event):
         number = int(event.char)
-        self.app.set_label_class(number)
+        print(number)
+        self.label_val = number
+        self.fill_colour = COLOURS[self.label_val]
 
     # CONVERSION
     def _canvas_to_frac_coords(
@@ -155,9 +162,10 @@ class InteractiveCanvas(CanvasImage):
         """Submit current label to data_model, delete in progress gui stuff."""
         self.canvas.delete("in_progress")
         self.canvas.delete("animated")
-        # TODO: get rid of all
 
-        msg = Message("POINTS", self.current_label_frac_points)
+        h, w = self.current_img_hw
+        points = [(int(x * w), int(y * h)) for x, y in self.current_label_frac_points]
+        msg = Message("POINTS", points)
         self.queue.put(msg)
 
         self.current_label_frac_points = []
