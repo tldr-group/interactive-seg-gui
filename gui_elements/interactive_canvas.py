@@ -141,8 +141,16 @@ class InteractiveCanvas(CanvasImage):
         frac_points = self.current_label_frac_points
         if len(frac_points) > 0:
             x0, y0 = self._frac_to_canvas_coords(*frac_points[-1])
+            print(self.imscale)
+            scaled_width = 1.5 * self.brush_width * self.imscale
             self.canvas.create_line(
-                x0, y0, x, y, fill=self.fill_colour, width=2.2, tags="in_progress"
+                x0,
+                y0,
+                x,
+                y,
+                fill=self.fill_colour,
+                width=scaled_width,
+                tags="in_progress",
             )
         self.current_label_frac_points.append((frac_x, frac_y))
         return None
