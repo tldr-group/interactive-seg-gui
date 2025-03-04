@@ -99,6 +99,7 @@ class App(ttk.Frame):
     def init_widgets(self) -> None:
         self._init_menubar()
         self._init_canv()
+        self._init_sidebar()
 
     def _init_menubar(self) -> None:
         self.menu_bar = MenuBar(self.root, self)
@@ -108,7 +109,7 @@ class App(ttk.Frame):
         img_frame = ttk.LabelFrame(self, text="Image", padding=(3.5 * PAD, 3.5 * PAD))
         img_frame.grid(
             row=MENU_BAR_ROW + 1,
-            column=0,
+            column=SIDE_BAR_COL + 1,
             padx=(2 * PAD, PAD),
             pady=(2 * PAD, PAD),
             rowspan=CANVAS_H_GRID,
@@ -121,6 +122,31 @@ class App(ttk.Frame):
 
         self.canvas = InteractiveCanvas(img_frame, self.data_model.out_queue)
         self.canvas.grid(row=0, column=0)
+
+    def _init_sidebar(self) -> None:
+        frame = ttk.Frame(self, relief="groove", borderwidth=2)
+        frame.grid(
+            row=MENU_BAR_ROW + 1,
+            column=SIDE_BAR_COL,
+            columnspan=CANVAS_W_GRID,
+            sticky="ns",
+        )
+
+        class_text = ttk.Label(frame, text="Class:")
+        class_text.grid(row=0)
+        options = [str(i) for i in range(1, 9)]
+        class_btn = ttk.Combobox(frame, width=3, values=options, state="readonly")
+        class_btn.set(self.canvas.label_val)
+        class_btn.grid(row=1)
+
+        width_text = ttk.Label(frame, text="Width:")
+        width_text.grid(row=2)
+
+        brush_width_combo = ttk.Spinbox(frame, width=3)
+        brush_width_combo.grid(row=3)
+
+        brush_width_slider = ttk.Scale(frame, orient="vertical")
+        brush_width_slider.grid(row=4)
 
     def load_image_from_filepaths(self, paths: tuple[str, ...]) -> None:
         piece: Piece | None = None
