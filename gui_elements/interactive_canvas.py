@@ -38,7 +38,7 @@ class InteractiveCanvas(CanvasImage):
 
         # self.canvas.bind("<Button-1>", self.left_click)
         # self.canvas.bind("<Button-3>", self.right_click)
-        # self.canvas.bind("<Motion>", self.mouse_motion)s
+        self.canvas.bind("<Motion>", self.mouse_motion)
         self.canvas.bind("<B1-Motion>", self.mouse_motion_while_click)
         self.canvas.bind("<ButtonRelease-1>", self.mouse_release)
 
@@ -52,6 +52,14 @@ class InteractiveCanvas(CanvasImage):
         super().set_current_image(pil_image, new)
         self.image_available = True
         self.current_img_hw = (pil_image.height, pil_image.width)
+
+    def mouse_motion(self, event: tk.Event) -> None:
+        result = self._bounds_check_return_coords(event)
+        if result is None:
+            return None
+        else:
+            x, y, _, _ = result
+            self._mouse_motion_draw_cursor(x, y, int(self.brush_width))
 
     def mouse_motion_while_click(self, event: tk.Event) -> None:
         """For brush type labelling."""
@@ -123,37 +131,39 @@ class InteractiveCanvas(CanvasImage):
             frac_x, frac_y = self._canvas_to_frac_coords(x, y)
             return x, y, frac_x, frac_y
         else:
+            self.canvas.delete("animated")
             return None
 
     def place_poly_point(
-        self, x: int, y: int, frac_x: float, frac_y: float, r: int = 5
+        self, x: int, y: int, frac_x: float, frac_y: float, r: int
     ) -> None:
         """Draw oval at click. Draw line from prev point to new point. Append fractional coords of new point to list."""
+        scaled_w = r * self.imscale
         self.canvas.create_oval(
-            x - r,
-            y - r,
-            x + r,
-            y + r,
+            x - scaled_w,
+            y - scaled_w,
+            x + scaled_w,
+            y + scaled_w,
             fill=self.fill_colour,
             width=0,
             tags="in_progress",
         )
-        frac_points = self.current_label_frac_points
-        if len(frac_points) > 0:
-            x0, y0 = self._frac_to_canvas_coords(*frac_points[-1])
-            print(self.imscale)
-            scaled_width = 1.5 * self.brush_width * self.imscale
-            self.canvas.create_line(
-                x0,
-                y0,
-                x,
-                y,
-                fill=self.fill_colour,
-                width=scaled_width,
-                tags="in_progress",
-            )
         self.current_label_frac_points.append((frac_x, frac_y))
         return None
+
+    def _mouse_motion_draw_cursor(self, x: int, y: int, r: int):
+        scaled_w = r * self.imscale
+        self.canvas.delete("animated")
+        self.canvas.create_oval(
+            x - scaled_w,
+            y - scaled_w,
+            x + scaled_w,
+            y + scaled_w,
+            outline=self.fill_colour,
+            fill=None,
+            width=1,
+            tags="animated",
+        )
 
     def _mouse_motion_poly(self, x: int, y: int) -> None:
         self.canvas.delete("animated")
