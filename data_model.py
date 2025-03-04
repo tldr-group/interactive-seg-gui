@@ -1,5 +1,6 @@
 import numpy as np
 from queue import Queue
+from tifffile import imread
 
 from PIL import Image, ImageDraw
 
@@ -50,6 +51,38 @@ def label_from_points(
     return Label(x0, y0, bbox, diff)
 
 
+@dataclass
+class Piece:
+    """
+    Piece.
+
+    Fundamental unit of program. Holds the data associated with the image in $arr, a PIL image of the arr in $img.
+    Labels is a list of label objects that belong to this piece. __post_init__ adds some mutable objects like
+    segmentations and grid_points that are useful later.
+    """
+
+    img: Image.Image
+    img_arr: np.ndarray
+
+    labels: list[Label]
+    labelled: bool = False
+    segmented: bool = False
+
+    def __post_init__(self) -> None:
+        """Set these here because dataclasses don't like mutable objects being assigned in __init__."""
+        shape: tuple[int, ...] = self.img_arr.shape
+        self.h: int = shape[0]
+        self.w: int = shape[1]
+
+        # integer arr where 0 = not labelled and N > 0 indicates a label for class N at that pixel
+        self.labels_arr: np.ndarray = np.zeros(shape, dtype=np.uint8)
+        # integer arr where value N at pixel P indicates the classifier thinks P is class N
+        self.seg_arr: np.ndarray = np.zeros(shape, dtype=np.uint8)
+
+        # boolean arr where 1 = show this pixel in the overlay and 0 means hide. Used for hiding/showing labels later.
+        self.label_alpha_mask = np.ones_like(self.seg_arr, dtype=bool)
+
+
 class DataModel(object):
     def __init__(self) -> None:
         self.in_queue: Queue[Message] = Queue(maxsize=40)
@@ -57,3 +90,20 @@ class DataModel(object):
 
         init_msg = Message("NOTIF", "hello world")
         self.out_queue.put(init_msg)
+
+        self.gallery: list[Piece] = []
+
+    def add_image(self, filepath: str) -> Piece:
+        extension: str = filepath.split(".")[-1]
+        if extension.lower() not in ["png", "jpg", "jpeg", "tif", "bmp", "tiff"]:
+            raise Exception(f".{extension} is not a valid image file format")
+
+        if extension.lower() in ["tiff", "tif"]:
+            np_array: np.ndarray = imread(filepath)  # type: ignore
+            pil_image = Image.fromarray(np_array).convert("RGBA")
+        else:
+            pil_image = Image.open(filepath)
+            np_array = np.array(pil_image)
+            pil_image.convert("RGBA")
+
+        return Piece(pil_image, np_array, [], False, False)

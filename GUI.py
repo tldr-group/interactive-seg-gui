@@ -1,6 +1,7 @@
 # %% IMPORTS
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog as fd
 from matplotlib.colors import ListedColormap
 from PIL import Image
 
@@ -15,7 +16,49 @@ from gui_elements.constants import (
     CANVAS_W_GRID,
 )
 from gui_elements.interactive_canvas import InteractiveCanvas
-from data_model import DataModel, Message
+from data_model import DataModel, Piece, Message
+
+from typing import Callable, Literal, Union
+
+
+# %% FUNCTIONS
+def _foo(x):  # placeholder fn to be deleted later
+    print("Not implemented")
+
+
+def _foo_n(x):
+    pass
+
+
+def _no_arg_foo():
+    print("Not implemented")
+
+
+def open_file_dialog_return_fps(
+    title: str = "Open",
+    file_type_name: str = "Image",
+    file_types_string: str = ".tif .tiff .png .jpg",
+) -> Union[Literal[""], tuple[str, ...]]:
+    """Open file dialog and select n files, returning their file paths then loading them."""
+    filepaths: Union[Literal[""], tuple[str, ...]] = fd.askopenfilenames(
+        filetypes=[(f"{file_type_name} files:", file_types_string)], title=title
+    )
+
+    if filepaths == ():  # if user closed file manager w/out selecting
+        return ""
+    return filepaths
+
+
+def open_file_dialog_return_fp(
+    title: str = "Open",
+    file_type_name: str = "Pickle",
+    file_types_string: str = ".pkl",
+) -> str:
+    """Open file dialog and select n files, returning their file paths then loading them."""
+    filepath: str = fd.askopenfilename(
+        filetypes=[(f"{file_type_name} files:", file_types_string)], title=title
+    )
+    return filepath
 
 
 def _make_frame_contents_expand(frame: tk.Tk | tk.Frame | ttk.LabelFrame, i=5):
@@ -50,9 +93,12 @@ class App(ttk.Frame):
         self.event_loop()
 
     def init_widgets(self, initial_img: Image.Image | None = None) -> None:
+        self._init_menubar()
         self._init_canv(initial_img)
-    
+
     def _init_menubar(self) -> None:
+        self.menu_bar = MenuBar(self.root, self)
+        self.root.config(menu=self.menu_bar)
 
     def _init_canv(self, initial_img: Image.Image | None = None) -> None:
         img_frame = ttk.LabelFrame(self, text="Image", padding=(3.5 * PAD, 3.5 * PAD))
@@ -72,6 +118,17 @@ class App(ttk.Frame):
             img_frame, self.data_model.out_queue, initial_img
         )
         self.canvas.grid(row=0, column=0)
+
+    def load_image_from_filepaths(self, paths: tuple[str, ...]) -> None:
+        piece: Piece | None = None
+        for path in paths:
+            piece = self.data_model.add_image(path)
+        self.set_canvas_image(piece)
+
+    def set_canvas_image(self, piece: Piece | None) -> None:
+        if piece is None:
+            return
+        self.canvas.set_current_image(piece.img, True)
 
     def handle_message(self, message: Message) -> None:
         header = message.category
@@ -95,7 +152,8 @@ class App(ttk.Frame):
         self.loop = self.root.after(100, self.event_loop)
 
 
-#%%
+# %%
+
 
 class MenuBar(tk.Menu):
     """Menu bar across top of GUI with dropdown commands: load data, classifiers, save segs etc."""
@@ -107,6 +165,9 @@ class MenuBar(tk.Menu):
         )  # done s.t the menu bar is attached to the root (tk window) rather than the frame
         self.app = app
 
+        self.add_command(label="[microSeg]")
+        self.add_separator()
+
         data_name_fn_pairs: list[tuple[str, Callable]] = [
             ("Add Image", self._load_images),
             ("Remove Image", _foo),
@@ -115,17 +176,24 @@ class MenuBar(tk.Menu):
         self.add_cascade(label="Data", menu=data_menu)
 
         classifier_name_fn_pairs: list[tuple[str, Callable]] = [
-            ("New Classifier", self.app.classifier_window),
-            ("Train Classifier", self.app.data_model.train),
-            ("Apply Classifier", self.app.data_model.segment),
-            ("Load Classifier", self._load_classifier),
-            ("Save Classifier", self._save_classifier),
+            ("New Classifier", _foo),
+            ("Train Classifier", _foo),
+            ("Apply Classifier", _foo),
+            ("Load Classifier", _foo),
+            ("Save Classifier", _foo),
         ]
         classifier_menu = self._make_dropdown(classifier_name_fn_pairs)
         self.add_cascade(label="Classifier", menu=classifier_menu)
 
-        self.add_command(label="Post-Process", command=_foo)  # type: ignore
-        self.add_command(label="Save Segmentation", command=self._save_segmentation)  # type: ignore
+        # self.add_command(label="Post-Process", command=_foo)  # type: ignore
+
+        save_name_fn_pairs: list[tuple[str, Callable]] = [
+            ("Save Segmentation", _foo),
+            ("Save Labels", _foo),
+            ("Save Classifier", _foo),
+        ]
+        save_menu = self._make_dropdown(save_name_fn_pairs)
+        self.add_cascade(label="Save", menu=save_menu)
 
     def _make_dropdown(self, name_fn_pair_list: list[tuple[str, Callable]]) -> tk.Menu:
         menu = tk.Menu()
@@ -150,14 +218,16 @@ class MenuBar(tk.Menu):
         if file_path == "":
             return
         else:
-            self.app.data_model.model.load_model(file_path)
+            pass
+            # self.app.data_model.model.load_model(file_path)
 
     def _save_classifier(self) -> None:
         f = fd.asksaveasfile(mode="wb", defaultextension=".pkl")
         if f is None:
             return
         else:
-            self.app.data_model.model.save_model(f)
+            pass
+            # self.app.data_model.model.save_model(f)
             f.close()
 
     def _save_segmentation(self) -> None:
@@ -165,5 +235,6 @@ class MenuBar(tk.Menu):
         if f is None:
             return
         else:
-            self.app.data_model.save_seg(f)
+            pass
+            # self.app.data_model.save_seg(f)
             f.close()

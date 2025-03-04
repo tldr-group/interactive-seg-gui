@@ -9,10 +9,10 @@ filename = "data/test.png"
 
 if __name__ == "__main__":
     root = tk.Tk()
-    root.title("Deep Feature Segmentation")
+    root.title("")
 
     model = DataModel()
-    app = App(root, model, Image.open(filename))
+    app = App(root, model)
     app.grid()
 
     root.mainloop()
