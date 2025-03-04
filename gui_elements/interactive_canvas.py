@@ -29,10 +29,12 @@ class InteractiveCanvas(CanvasImage):
         self.current_img_hw = (10, 10)
         self.image_available = False
 
-        self.label_val: int = 1
-        self.brush_width = 5
+        self.label_val = tk.IntVar(parent, 1)  # 1
+        self.brush_width = tk.IntVar(parent, 5)
 
-        self.fill_colour: str = COLOURS[self.label_val]  # self.app.class_colours[1]
+        self.fill_colour: str = COLOURS[
+            self.label_val.get()
+        ]  # self.app.class_colours[1]
 
         self.current_label_frac_points: list[tuple[float, float]] = []
 
@@ -60,7 +62,7 @@ class InteractiveCanvas(CanvasImage):
             return None
         else:
             x, y, _, _ = result
-            self._mouse_motion_draw_cursor(x, y, int(self.brush_width))
+            self._mouse_motion_draw_cursor(x, y, int(self.brush_width.get()))
 
     def mouse_motion_while_click(self, event: tk.Event) -> None:
         """For brush type labelling."""
@@ -68,7 +70,7 @@ class InteractiveCanvas(CanvasImage):
         if result is None:
             return None
         else:
-            self.place_poly_point(*result, int(self.brush_width))
+            self.place_poly_point(*result, int(self.brush_width.get()))
 
     def mouse_release(self, event: tk.Event) -> None:
         """For brush/circle/rectangle label types (others covered by different click)."""

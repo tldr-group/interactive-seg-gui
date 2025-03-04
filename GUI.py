@@ -129,24 +129,45 @@ class App(ttk.Frame):
             row=MENU_BAR_ROW + 1,
             column=SIDE_BAR_COL,
             columnspan=CANVAS_W_GRID,
+            rowspan=CANVAS_H_GRID,
             sticky="ns",
         )
 
         class_text = ttk.Label(frame, text="Class:")
-        class_text.grid(row=0)
+        class_text.grid(row=0, pady=(4, 0), padx=(1 + PAD * 1.5, 1 + PAD * 1.5))
         options = [str(i) for i in range(1, 9)]
-        class_btn = ttk.Combobox(frame, width=3, values=options, state="readonly")
-        class_btn.set(self.canvas.label_val)
-        class_btn.grid(row=1)
+        class_btn = ttk.Spinbox(
+            frame,
+            textvariable=self.canvas.label_val,
+            width=3,
+            values=options,
+            state="readonly",
+        )
+        # class_btn.set(str(self.canvas.label_val))
+        class_btn.grid(row=1, pady=(0, PAD))
+
+        erase_text = ttk.Label(frame, text="Erase:")
+        erase_text.grid(row=2)
+        erase = ttk.Checkbutton(frame)
+        erase.grid(row=3, pady=(0, PAD))
 
         width_text = ttk.Label(frame, text="Width:")
-        width_text.grid(row=2)
+        width_text.grid(row=4)
 
-        brush_width_combo = ttk.Spinbox(frame, width=3)
-        brush_width_combo.grid(row=3)
+        brush_width_combo = ttk.Spinbox(
+            frame, textvariable=self.canvas.brush_width, width=3
+        )
+        brush_width_combo.grid(row=5)
 
-        brush_width_slider = ttk.Scale(frame, orient="vertical")
-        brush_width_slider.grid(row=4)
+        brush_width_slider = ttk.Scale(
+            frame,
+            from_=1,
+            to=60,
+            variable=self.canvas.brush_width,
+            orient="vertical",
+            length=200,
+        )
+        brush_width_slider.grid(row=6, pady=(1, PAD))
 
     def load_image_from_filepaths(self, paths: tuple[str, ...]) -> None:
         piece: Piece | None = None
@@ -160,11 +181,12 @@ class App(ttk.Frame):
         self.canvas.set_current_image(piece.img, True)
 
     def add_label(self, points: list[Point]) -> None:
+        v = self.canvas.label_val.get()
         self.data_model.create_and_add_labels_from_points(
             points,
             self.data_model.current_piece_idx,
-            self.canvas.label_val,
-            self.canvas.brush_width,
+            self.canvas.label_val.get(),
+            self.canvas.brush_width.get(),
         )
 
     def remove_last_label(self) -> None:
