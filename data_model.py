@@ -51,13 +51,13 @@ def label_from_points(
     h, w = (y1 - y0), (x1 - x0)
     bbox = (x0, y0, x1, y1)
     # TODO: consider how erasing works
-    # print(bbox, len(points), label_val, brush_width)
     o = brush_width
     new_label = draw_points_get_arr(points, h, w, y0, x0, label_val, brush_width)
 
     prev_state = seg_arr[y0 - o : y1 + o, x0 - o : x1 + o]
 
     diff = new_label - prev_state
+    diff *= new_label > 0
     if update_seg_arr:
         seg_arr[y0 - o : y1 + o, x0 - o : x1 + o] += diff
     return Label(x0, y0, bbox, diff)
