@@ -2,8 +2,10 @@
 import tkinter as tk
 from tkinter import ttk
 from matplotlib.colors import ListedColormap
+from PIL import Image
 
-from constants import COLOURS, MessageTypes
+from gui_elements.constants import COLOURS
+from gui_elements.interactive_canvas import InteractiveCanvas
 from data_model import DataModel, Message
 
 
@@ -16,7 +18,9 @@ def _make_frame_contents_expand(frame: tk.Tk | tk.Frame | ttk.LabelFrame, i=5):
 class App(ttk.Frame):
     """Parent widget for GUI. Contains event scheduler in listen() method."""
 
-    def __init__(self, root: tk.Tk, data_model: DataModel) -> None:
+    def __init__(
+        self, root: tk.Tk, data_model: DataModel, initial_img: Image.Image | None = None
+    ) -> None:
         """Take $root and assign it to attr .root. Inits other widgets and starts scheduler."""
         ttk.Frame.__init__(self)
         self.root = root
@@ -32,13 +36,21 @@ class App(ttk.Frame):
         self.root.option_add("*tearOff", False)
         _make_frame_contents_expand(self.root)
 
+        self.init_widgets(initial_img)
+
         self.event_loop()
 
+    def init_widgets(self, initial_img: Image.Image | None = None) -> None:
+        self.canvas = InteractiveCanvas(self, self.data_model.out_queue, initial_img)
+        self.canvas.grid()
+
     def handle_message(self, message: Message) -> None:
-        header = message["category"]
+        header = message.category
         match header:
             case "NOTIF":
-                print(message["data"])
+                print(message.data)
+            case "POINTS":
+                print(message.data)
             case _:
                 raise Exception(f"Undefined message type {header}")
 

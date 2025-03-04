@@ -1,4 +1,5 @@
 from typing import Literal
+from dataclasses import dataclass
 
 COLOURS: list[str] = [
     "#fafafa",
@@ -24,5 +25,11 @@ SIDE_COL: int = 2
 
 MIN_TIME: float = 0.07
 
-MessageTypes = Literal["NOTIF", "TRAIN", "SEGMENT"]
+MessageTypes = Literal["NOTIF", "TRAIN", "SEGMENT", "POINTS"]
 ProgressTypes = Literal["start", "stop", "progress", "N/A"]
+
+
+@dataclass
+class Message:
+    category: MessageTypes
+    data: object

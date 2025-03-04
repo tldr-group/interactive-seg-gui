@@ -3,8 +3,8 @@ from queue import Queue
 
 from PIL import Image, ImageDraw
 
-from typing import Literal, TypedDict, TypeAlias
-from constants import MessageTypes
+from typing import TypeAlias
+from gui_elements.constants import Message
 from dataclasses import dataclass
 
 Point: TypeAlias = tuple[float, float]
@@ -50,14 +50,10 @@ def label_from_points(
     return Label(x0, y0, bbox, diff)
 
 
-class Message(TypedDict):
-    category: MessageTypes
-    data: object
-
-
 class DataModel(object):
     def __init__(self) -> None:
         self.in_queue: Queue[Message] = Queue(maxsize=40)
         self.out_queue: Queue[Message] = Queue(maxsize=40)
 
-        self.out_queue.put({"category": "NOTIF", "data": "hello_world"})
+        init_msg = Message("NOTIF", "hello world")
+        self.out_queue.put(init_msg)

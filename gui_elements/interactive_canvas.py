@@ -1,9 +1,12 @@
 import tkinter as tk
+from queue import Queue
+from PIL import Image
 
-from zoomable_canvas import CanvasImage
+from gui_elements.zoomable_canvas import CanvasImage
+from gui_elements.constants import Message
 
 
-class PolygonCanvas(CanvasImage):
+class InteractiveCanvas(CanvasImage):
     """
     PolygonCanvas.
 
@@ -13,15 +16,27 @@ class PolygonCanvas(CanvasImage):
     update label overlay with the confirmed data.
     """
 
-    def __init__(self, parent: tk.Widget):
+    def __init__(
+        self,
+        parent: tk.Widget,
+        out_queue: Queue[Message],
+        initial_img: Image.Image | None = None,
+    ):
         """Init the canvas and bind all the keypresses."""
-        super(PolygonCanvas, self).__init__(parent)
+        super(InteractiveCanvas, self).__init__(parent)
+
+        self.queue = out_queue
 
         self.image_available = False
+        if initial_img is not None:
+            self.set_current_image(initial_img, True)
+            self.image_available = True
 
         self.brush_width = 5
 
-        # self.fill_colour: str = self.app.class_colours[1]
+        self.fill_colour: str = "red"  # self.app.class_colours[1]
+        self.current_img_hw = (10, 10)
+
         self.current_label_frac_points: list[tuple[float, float]] = []
 
         # self.canvas.bind("<Button-1>", self.left_click)
@@ -31,7 +46,7 @@ class PolygonCanvas(CanvasImage):
         self.canvas.bind("<ButtonRelease-1>", self.mouse_release)
 
         self.canvas.bind("<Escape>", self.cancel)
-        self.canvas.bind("<Delete>", self.delete)
+        # self.canvas.bind("<Delete>", self.delete)
 
         for i in range(10):
             self.canvas.bind(f"{i}", self._num_key_press)
@@ -57,6 +72,8 @@ class PolygonCanvas(CanvasImage):
         self.canvas.delete("in_progress")
         self.current_label_frac_points = []
 
+    # TODO: delete button that wipes all labels
+
     def _num_key_press(self, event):
         number = int(event.char)
         self.app.set_label_class(number)
@@ -71,7 +88,7 @@ class PolygonCanvas(CanvasImage):
         return (frac_x, frac_y)
 
     def _canvas_to_arr_coords(self, canvas_x: int, canvas_y: int) -> tuple[int, int]:
-        h, w = self.app.data_model.current_piece.arr.shape
+        h, w = self.current_img_hw
         frac_x, frac_y = self._canvas_to_frac_coords(canvas_x, canvas_y)
         return (int(frac_x * w), int(frac_y * h))
 
@@ -84,7 +101,7 @@ class PolygonCanvas(CanvasImage):
         return (canvas_x, canvas_y)
 
     def _arr_to_frac_coords(self, arr_x: int, arr_y: int) -> tuple[float, float]:
-        h, w = self.app.data_model.current_piece.arr.shape
+        h, w = self.current_img_hw
         return arr_x / w, arr_y / h
 
     def _arr_to_canvas_coords(self, arr_x: int, arr_y: int) -> tuple[float, float]:
@@ -134,21 +151,13 @@ class PolygonCanvas(CanvasImage):
             x0, y0, x, y, fill=self.fill_colour, width=2.2, tags="animated"
         )
 
-    def finish_poly(self, event: tk.Event) -> None:
+    def finish_poly(self, _event: tk.Event) -> None:
         """Submit current label to data_model, delete in progress gui stuff."""
         self.canvas.delete("in_progress")
         self.canvas.delete("animated")
+        # TODO: get rid of all
 
-        current_class = self.app.data_model.current_class
-        label_type = self.app.data_model.labelling_type
-        print(label_type)
-
-        self.app.data_model.add_label(
-            current_class,
-            self.current_label_frac_points,
-            label_type,
-            self.app.brush_width,
-        )
+        msg = Message("POINTS", self.current_label_frac_points)
+        self.queue.put(msg)
 
         self.current_label_frac_points = []
-        self.app.needs_updating = True
