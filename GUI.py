@@ -16,7 +16,7 @@ from gui_elements.constants import (
     CANVAS_W_GRID,
 )
 from gui_elements.interactive_canvas import InteractiveCanvas
-from data_model import DataModel, Piece, Message
+from data_model import DataModel, Piece, Message, Point
 
 from typing import Callable, Literal, Union
 
@@ -71,7 +71,7 @@ class App(ttk.Frame):
     """Parent widget for GUI. Contains event scheduler in listen() method."""
 
     def __init__(
-        self, root: tk.Tk, data_model: DataModel, initial_img: Image.Image | None = None
+        self, root: tk.Tk, data_model: DataModel, initial_img_path: str | None = None
     ) -> None:
         """Take $root and assign it to attr .root. Inits other widgets and starts scheduler."""
         ttk.Frame.__init__(self)
@@ -81,26 +81,27 @@ class App(ttk.Frame):
         self.overlay_needs_updating: bool = False
         self.seg_overlay_alpha: float = 1.0
 
-        self.brush_width: float = 1.0
-
         self.cmap = ListedColormap(COLOURS)
 
         self.root.option_add("*tearOff", False)
         _make_frame_contents_expand(self.root)
 
-        self.init_widgets(initial_img)
+        self.init_widgets()
+
+        if initial_img_path is not None:
+            self.load_image_from_filepaths((initial_img_path,))
 
         self.event_loop()
 
-    def init_widgets(self, initial_img: Image.Image | None = None) -> None:
+    def init_widgets(self) -> None:
         self._init_menubar()
-        self._init_canv(initial_img)
+        self._init_canv()
 
     def _init_menubar(self) -> None:
         self.menu_bar = MenuBar(self.root, self)
         self.root.config(menu=self.menu_bar)
 
-    def _init_canv(self, initial_img: Image.Image | None = None) -> None:
+    def _init_canv(self) -> None:
         img_frame = ttk.LabelFrame(self, text="Image", padding=(3.5 * PAD, 3.5 * PAD))
         img_frame.grid(
             row=MENU_BAR_ROW + 1,
@@ -114,9 +115,7 @@ class App(ttk.Frame):
         img_frame.rowconfigure(0, weight=1, minsize=CANVAS_H)
         img_frame.columnconfigure(0, weight=1, minsize=CANVAS_W)
 
-        self.canvas = InteractiveCanvas(
-            img_frame, self.data_model.out_queue, initial_img
-        )
+        self.canvas = InteractiveCanvas(img_frame, self.data_model.out_queue)
         self.canvas.grid(row=0, column=0)
 
     def load_image_from_filepaths(self, paths: tuple[str, ...]) -> None:
@@ -130,13 +129,25 @@ class App(ttk.Frame):
             return
         self.canvas.set_current_image(piece.img, True)
 
+    def add_label(self, points: list[Point]) -> None:
+        self.data_model.create_and_add_labels_from_points(
+            points,
+            self.data_model.current_piece_idx,
+            self.canvas.label_val,
+            self.canvas.brush_width,
+        )
+
     def handle_message(self, message: Message) -> None:
         header = message.category
         match header:
             case "NOTIF":
                 print(message.data)
             case "POINTS":
-                print(message.data)
+                points = message.data
+                assert type(points) is list
+                if len(points) == 0:
+                    return
+                self.add_label(points)
             case _:
                 raise Exception(f"Undefined message type {header}")
 

@@ -75,9 +75,9 @@ class Piece:
         self.w: int = shape[1]
 
         # integer arr where 0 = not labelled and N > 0 indicates a label for class N at that pixel
-        self.labels_arr: np.ndarray = np.zeros(shape, dtype=np.uint8)
+        self.labels_arr: np.ndarray = np.zeros(shape, dtype=np.int16)
         # integer arr where value N at pixel P indicates the classifier thinks P is class N
-        self.seg_arr: np.ndarray = np.zeros(shape, dtype=np.uint8)
+        self.seg_arr: np.ndarray = np.zeros(shape, dtype=np.int16)
 
         # boolean arr where 1 = show this pixel in the overlay and 0 means hide. Used for hiding/showing labels later.
         self.label_alpha_mask = np.ones_like(self.seg_arr, dtype=bool)
@@ -91,9 +91,10 @@ class DataModel(object):
         init_msg = Message("NOTIF", "hello world")
         self.out_queue.put(init_msg)
 
+        self.current_piece_idx: int = 0
         self.gallery: list[Piece] = []
 
-    def add_image(self, filepath: str) -> Piece:
+    def add_image(self, filepath: str, add_to_gallery: bool = True) -> Piece:
         extension: str = filepath.split(".")[-1]
         if extension.lower() not in ["png", "jpg", "jpeg", "tif", "bmp", "tiff"]:
             raise Exception(f".{extension} is not a valid image file format")
@@ -106,4 +107,15 @@ class DataModel(object):
             np_array = np.array(pil_image)
             pil_image.convert("RGBA")
 
-        return Piece(pil_image, np_array, [], False, False)
+        new_piece = Piece(pil_image, np_array, [], False, False)
+        if add_to_gallery:
+            self.gallery.append(new_piece)
+
+        return new_piece
+
+    def create_and_add_labels_from_points(
+        self, points: list[Point], piece_idx: int, label_val: int, brush_width: int
+    ) -> None:
+        piece = self.gallery[piece_idx]
+        label = label_from_points(points, piece.seg_arr, label_val, brush_width, True)
+        piece.labels.append(label)

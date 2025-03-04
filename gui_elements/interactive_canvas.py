@@ -20,7 +20,6 @@ class InteractiveCanvas(CanvasImage):
         self,
         parent: tk.Widget,
         out_queue: Queue[Message],
-        initial_img: Image.Image | None = None,
     ):
         """Init the canvas and bind all the keypresses."""
         super(InteractiveCanvas, self).__init__(parent)
@@ -29,9 +28,6 @@ class InteractiveCanvas(CanvasImage):
 
         self.current_img_hw = (10, 10)
         self.image_available = False
-        if initial_img is not None:
-            self.set_current_image(initial_img, True)
-            self.image_available = True
 
         self.label_val: int = 1
         self.brush_width = 5
@@ -52,8 +48,9 @@ class InteractiveCanvas(CanvasImage):
         for i in range(10):
             self.canvas.bind(f"{i}", self._num_key_press)
 
-    def set_current_image(self, pil_image, new=False):
+    def set_current_image(self, pil_image, new=False) -> None:
         super().set_current_image(pil_image, new)
+        self.image_available = True
         self.current_img_hw = (pil_image.height, pil_image.width)
 
     def mouse_motion_while_click(self, event: tk.Event) -> None:
