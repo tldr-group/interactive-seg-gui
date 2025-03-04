@@ -2,7 +2,8 @@ import numpy as np
 from queue import Queue
 from tifffile import imread
 
-from PIL import Image, ImageDraw
+from skimage.draw import ellipse
+from PIL import Image
 
 from typing import TypeAlias
 from gui_elements.constants import Message
@@ -20,11 +21,20 @@ class Label:
 
 
 def draw_points_get_arr(
-    points: list[Point], box_h: int, box_w: int, label_val: int, brush_width: int
+    points: list[Point],
+    box_h: int,
+    box_w: int,
+    y0: int,
+    x0: int,
+    label_val: int,
+    brush_width: int,
 ) -> np.ndarray:
-    temp_img = Image.new("L", (box_w, box_h), 0)
-    ImageDraw.Draw(temp_img).line(points, fill=label_val, width=int(brush_width))
-    return np.array(temp_img, dtype=np.int16)
+    o = brush_width
+    temp_arr = np.zeros((box_h + 2 * o, box_w + 2 * o), dtype=np.int16)
+    for p in points:
+        rr, cc = ellipse(o + p[1] - y0, o + p[0] - x0, brush_width, brush_width)
+        temp_arr[rr, cc] = label_val
+    return temp_arr
 
 
 def label_from_points(
@@ -41,13 +51,15 @@ def label_from_points(
     h, w = (y1 - y0), (x1 - x0)
     bbox = (x0, y0, x1, y1)
     # TODO: consider how erasing works
-    new_label = draw_points_get_arr(points, h, w, label_val, brush_width)
+    # print(bbox, len(points), label_val, brush_width)
+    o = brush_width
+    new_label = draw_points_get_arr(points, h, w, y0, x0, label_val, brush_width)
 
-    prev_state = seg_arr[y0:y1, x0:x1]
+    prev_state = seg_arr[y0 - o : y1 + o, x0 - o : x1 + o]
 
     diff = new_label - prev_state
     if update_seg_arr:
-        seg_arr[y0:y1, x0:x1] += diff
+        seg_arr[y0 - o : y1 + o, x0 - o : x1 + o] += diff
     return Label(x0, y0, bbox, diff)
 
 
@@ -117,5 +129,8 @@ class DataModel(object):
         self, points: list[Point], piece_idx: int, label_val: int, brush_width: int
     ) -> None:
         piece = self.gallery[piece_idx]
-        label = label_from_points(points, piece.seg_arr, label_val, brush_width, True)
+        label = label_from_points(
+            points, piece.labels_arr, label_val, brush_width, True
+        )
         piece.labels.append(label)
+        piece.labelled = True

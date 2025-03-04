@@ -2,6 +2,8 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog as fd
+
+import numpy as np
 from matplotlib.colors import ListedColormap
 from PIL import Image
 
@@ -80,6 +82,7 @@ class App(ttk.Frame):
 
         self.overlay_needs_updating: bool = False
         self.seg_overlay_alpha: float = 1.0
+        self.label_overlay_alpha: float = 0.7
 
         self.cmap = ListedColormap(COLOURS)
 
@@ -137,6 +140,49 @@ class App(ttk.Frame):
             self.canvas.brush_width,
         )
 
+    def get_img_from_seg(
+        self, train_result: np.ndarray, cmap: ListedColormap, alpha_mask: np.ndarray
+    ) -> Image.Image:
+        """Given a segmentation (i.e H,W arr where entries are ints), map this using the colourmaps to an image (with set opacity)."""
+        cmapped = cmap(train_result)
+        cmapped[:, :, 3] = alpha_mask
+        cmapped = (cmapped * 255).astype(np.uint8)
+        pil_image = Image.fromarray(cmapped, mode="RGBA")
+        return pil_image
+
+    def update_overlay(self) -> None:
+        self.needs_updating = False
+        if len(self.data_model.gallery) == 0:  # early return if no data
+            return None
+        current_piece = self.data_model.gallery[self.data_model.current_piece_idx]
+        h, w = (current_piece.h, current_piece.w)
+
+        new_img = Image.new(size=(w, h), mode="RGBA")
+        new_img.paste(current_piece.img, (0, 0), current_piece.img)
+
+        if current_piece.segmented is True:
+            seg_data = current_piece.seg_arr
+            alpha_mask = (
+                np.ones_like(seg_data, dtype=np.float16) * self.seg_overlay_alpha
+            )
+            overlay_seg_img = self.get_img_from_seg(
+                seg_data, cmap=self.cmap, alpha_mask=alpha_mask
+            )
+            new_img.paste(overlay_seg_img, (0, 0), overlay_seg_img)
+
+        if current_piece.labelled is True:
+            label_data = current_piece.labels_arr
+            alpha_mask = (
+                np.where(label_data > 0, 1, 0).astype(np.float16)
+                * self.label_overlay_alpha
+            )
+            overlay_label_img = self.get_img_from_seg(
+                label_data, cmap=self.cmap, alpha_mask=alpha_mask
+            )
+            new_img.paste(overlay_label_img, (0, 0), overlay_label_img)
+
+        self.canvas.set_current_image(new_img)
+
     def handle_message(self, message: Message) -> None:
         header = message.category
         match header:
@@ -159,7 +205,7 @@ class App(ttk.Frame):
             self.needs_updating = True
 
         if self.needs_updating:
-            pass
+            self.update_overlay()
         self.loop = self.root.after(100, self.event_loop)
 
 
