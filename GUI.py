@@ -115,6 +115,7 @@ class App(ttk.Frame):
             columnspan=CANVAS_W_GRID,
             sticky="nsew",
         )
+        img_frame.configure(cursor="none")
         img_frame.rowconfigure(0, weight=1, minsize=CANVAS_H)
         img_frame.columnconfigure(0, weight=1, minsize=CANVAS_W)
 

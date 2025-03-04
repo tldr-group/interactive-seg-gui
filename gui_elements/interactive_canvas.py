@@ -166,7 +166,7 @@ class InteractiveCanvas(CanvasImage):
             y + scaled_w,
             outline=self.fill_colour,
             fill=None,
-            width=1,
+            width=2,
             tags="animated",
         )
 
