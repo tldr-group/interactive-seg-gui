@@ -171,20 +171,22 @@ class App(ttk.Frame):
         )
         brush_width_combo.grid(row=5)
 
-        brush_width_slider = ttk.Scale(
+        brush_width_slider = tk.Scale(
             frame,
             from_=1,
             to=60,
             variable=self.canvas.brush_width,
             orient="vertical",
             length=200,
+            resolution=1,
+            showvalue=False,
         )
         brush_width_slider.grid(row=6, pady=(1, PAD))
 
         clear_btn = ttk.Button(frame, text="Clear", width=6, command=self.clear)
         clear_btn.grid(row=7, pady=(0, PAD))
 
-    def _init_bottombar(self, n_images: int = 2) -> None:
+    def _init_bottombar(self, n_images: int = 0) -> None:
         frame = ttk.Frame(self, relief="groove", borderwidth=2)
         frame.grid(
             row=BOTTOM_BAR_IDX, column=0, columnspan=CANVAS_W_GRID + 1, sticky="ew"
@@ -195,7 +197,7 @@ class App(ttk.Frame):
 
         tmp_frame = ttk.Frame(frame)
 
-        if n_images > 0:
+        if n_images > 1:
             image_text = ttk.Label(tmp_frame, text="Image:")
             image_text.grid(row=0, column=0)
             image_spinbox = ttk.Spinbox(
@@ -203,13 +205,15 @@ class App(ttk.Frame):
             )
             image_spinbox.grid(row=0, column=1)
 
-            image_slider = ttk.Scale(
+            image_slider = tk.Scale(
                 tmp_frame,
                 from_=0,
                 to=n_images,
                 variable=self.canvas.brush_width,
                 orient="horizontal",
                 length=400,
+                resolution=1,
+                showvalue=False,
             )
             image_slider.grid(row=0, column=2)
         tmp_frame.grid(row=0, column=2)
@@ -227,6 +231,10 @@ class App(ttk.Frame):
         for path in paths:
             piece = self.data_model.add_image(path)
         self.set_canvas_image(piece)
+
+        n_imgs = len(self.data_model.gallery)
+        if n_imgs > 1:
+            self._init_bottombar(n_imgs)
 
     # def class_changed(self, number: int) -> None:
     def clear(self) -> None:
