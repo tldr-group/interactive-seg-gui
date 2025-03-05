@@ -14,8 +14,8 @@ COLOURS: list[str] = [
     "#bcbd22",
     "#17becf",
 ]
-CANVAS_W: int = 900
-CANVAS_H: int = 600
+CANVAS_W: int = 1200
+CANVAS_H: int = 750
 CANVAS_H_GRID: int = 5
 CANVAS_W_GRID: int = 1
 
@@ -27,6 +27,7 @@ SIDE_COL: int = 2
 BOTTOM_BAR_IDX = MENU_BAR_ROW + CANVAS_H_GRID + 1
 
 MIN_TIME: float = 0.07
+N_PREVIEW_SLICES: int = 10
 
 MessageTypes = Literal["NOTIF", "TRAIN", "SEGMENT", "POINTS", "UNDO", "CLEAR"]
 ProgressTypes = Literal["start", "stop", "progress", "N/A"]

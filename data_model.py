@@ -6,7 +6,7 @@ from skimage.draw import ellipse
 from PIL import Image
 
 from typing import TypeAlias
-from gui_elements.constants import Message
+from gui_elements.constants import N_PREVIEW_SLICES, Message
 from dataclasses import dataclass
 
 Point: TypeAlias = tuple[float, float]
@@ -129,7 +129,10 @@ class DataModel(object):
 
         if extension.lower() in ["tiff", "tif"]:
             np_array: np.ndarray = imread(filepath)  # type: ignore
-            pil_image = Image.fromarray(np_array).convert("RGBA")
+            if check_if_arr_is_volume(np_array):
+                return self.add_volume(np_array)
+            else:
+                pil_image = Image.fromarray(np_array).convert("RGBA")
         else:
             pil_image = Image.open(filepath)
             np_array = np.array(pil_image)
@@ -140,6 +143,23 @@ class DataModel(object):
             self.gallery.append(new_piece)
 
         return new_piece
+
+    def add_volume(self, arr: np.ndarray, add_to_gallery: bool = True) -> Piece:
+        n_slices = arr.shape[0]
+        n_preview = min(N_PREVIEW_SLICES, n_slices)
+        slices = np.linspace(
+            0, n_slices - 1, num=n_preview, endpoint=True, dtype=np.uint16
+        )
+        for idx in slices:
+            slice_arr = arr[idx]
+            pil_image = Image.fromarray(slice_arr).convert("RGBA")
+            new_piece = Piece(pil_image, slice_arr, [], False, False)
+            if add_to_gallery:
+                self.gallery.append(new_piece)
+        return new_piece
+
+    def remove_image(self, idx: int) -> None:
+        self.gallery.pop(idx)
 
     def create_and_add_labels_from_points(
         self, points: list[Point], piece_idx: int, label_val: int, brush_width: int

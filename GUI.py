@@ -295,6 +295,9 @@ class App(ttk.Frame):
         current_piece.labels_arr *= 0
         self.needs_updating = True
 
+    # def remove_image(self) -> None:
+    #     self.ch
+
     # %% CANVAS
     def set_canvas_image(self, piece: Piece | None, new: bool = False) -> None:
         if piece is None:
