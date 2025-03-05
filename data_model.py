@@ -30,9 +30,9 @@ def draw_points_get_arr(
     brush_width: int,
 ) -> np.ndarray:
     o = brush_width
-    temp_arr = np.zeros((box_h + 2 * o, box_w + 2 * o), dtype=np.int16)
+    temp_arr = np.zeros((box_h, box_w), dtype=np.int16)
     for p in points:
-        rr, cc = ellipse(o + p[1] - y0, o + p[0] - x0, brush_width, brush_width)
+        rr, cc = ellipse(p[1] - y0, p[0] - x0, brush_width, brush_width)
         temp_arr[rr, cc] = label_val
     return temp_arr
 
@@ -44,22 +44,21 @@ def label_from_points(
     brush_width: int,
     update_seg_arr: bool = True,
 ) -> Label:
+    o = brush_width
     xs, ys = [p[0] for p in points], [p[1] for p in points]
-    x0, y0 = int(min(xs)), int(min(ys))
-    x1, y1 = int(max(xs)), int(max(ys))
+    x0, y0 = int(min(xs)) - o, int(min(ys)) - o
+    x1, y1 = int(max(xs)) + o, int(max(ys)) + o
 
     h, w = (y1 - y0), (x1 - x0)
     bbox = (x0, y0, x1, y1)
     # TODO: consider how erasing works
-    o = brush_width
     new_label = draw_points_get_arr(points, h, w, y0, x0, label_val, brush_width)
-
-    prev_state = seg_arr[y0 - o : y1 + o, x0 - o : x1 + o]
+    prev_state = seg_arr[y0:y1, x0:x1]
 
     diff = new_label - prev_state
     diff *= new_label > 0
     if update_seg_arr:
-        seg_arr[y0 - o : y1 + o, x0 - o : x1 + o] += diff
+        seg_arr[y0:y1, x0:x1] += diff
     return Label(x0, y0, bbox, diff)
 
 
@@ -137,8 +136,9 @@ class DataModel(object):
 
     def remove_last_label(self, piece_idx: int) -> None:
         piece = self.gallery[piece_idx]
-        label = piece.labels[-1]
-        piece.labels_arr -= label.diff
+        label = piece.labels.pop(-1)
+        x0, y0, x1, y1 = label.bbox
+        piece.labels_arr[y0:y1, x0:x1] -= label.diff
 
         if len(piece.labels) == 0:
             piece.labelled = False
