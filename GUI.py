@@ -88,7 +88,7 @@ class App(ttk.Frame):
         self.current_piece_idx = tk.IntVar(self, value=0)
 
         self.overlay_needs_updating: bool = False
-        self.seg_overlay_alpha: float = 1.0
+        self.seg_overlay_alpha = tk.DoubleVar(self, value=1.0)
         self.label_overlay_alpha: float = 0.7
 
         self.cmap = ListedColormap(COLOURS)
@@ -197,8 +197,21 @@ class App(ttk.Frame):
             row=BOTTOM_BAR_IDX, column=0, columnspan=CANVAS_W_GRID + 1, sticky="ew"
         )
 
-        text = ttk.Label(frame, text="    ")
-        text.grid(column=0)
+        opacity_text = ttk.Label(frame, text="  Opacity:")
+        opacity_text.grid(column=0)
+
+        opacity_slider = tk.Scale(
+            frame,
+            from_=0,
+            to=1,
+            variable=self.seg_overlay_alpha,
+            orient="horizontal",
+            length=200,
+            resolution=0.01,
+            showvalue=False,
+            command=lambda s: self.set_overlay_alpha(),
+        )
+        opacity_slider.grid(column=1, row=0)
 
         tmp_frame = ttk.Frame(frame)
 
@@ -303,6 +316,11 @@ class App(ttk.Frame):
             idx,
         )
 
+    def set_overlay_alpha(self, val: float | None = None):
+        if val is not None:
+            self.seg_overlay_alpha.set(val)
+        self.needs_updating = True
+
     def get_img_from_seg(
         self, train_result: np.ndarray, cmap: ListedColormap, alpha_mask: np.ndarray
     ) -> Image.Image:
@@ -326,7 +344,7 @@ class App(ttk.Frame):
         if current_piece.segmented is True:
             seg_data = current_piece.seg_arr
             alpha_mask = (
-                np.ones_like(seg_data, dtype=np.float16) * self.seg_overlay_alpha
+                np.ones_like(seg_data, dtype=np.float16) * self.seg_overlay_alpha.get()
             )
             overlay_seg_img = self.get_img_from_seg(
                 seg_data, cmap=self.cmap, alpha_mask=alpha_mask

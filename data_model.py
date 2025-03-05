@@ -99,6 +99,19 @@ class Piece:
         self.label_alpha_mask = np.ones_like(self.seg_arr, dtype=bool)
 
 
+def check_if_arr_is_volume(arr: np.ndarray) -> bool:
+    shape = arr.shape
+    if len(shape) == 3:
+        if shape[0] == 1 or shape[-1] == 1:
+            return False
+        elif shape[-1] == 3 or shape[-1] == 4:
+            return False
+        else:
+            return True
+    else:
+        return False
+
+
 class DataModel(object):
     def __init__(self) -> None:
         self.in_queue: Queue[Message] = Queue(maxsize=40)
@@ -120,7 +133,7 @@ class DataModel(object):
         else:
             pil_image = Image.open(filepath)
             np_array = np.array(pil_image)
-            pil_image.convert("RGBA")
+            pil_image = pil_image.convert("RGBA")
 
         new_piece = Piece(pil_image, np_array, [], False, False)
         if add_to_gallery:
