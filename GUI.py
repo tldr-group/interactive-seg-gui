@@ -73,6 +73,7 @@ def _make_frame_contents_expand(frame: tk.Tk | tk.Frame | ttk.LabelFrame, i=5):
     frame.rowconfigure(index=BOTTOM_BAR_IDX, weight=0)
 
 
+# %% APP
 class App(ttk.Frame):
     """Parent widget for GUI. Contains event scheduler in listen() method."""
 
@@ -100,6 +101,7 @@ class App(ttk.Frame):
 
         self.event_loop()
 
+    # %% INIT_WIDGETS
     def init_widgets(self) -> None:
         self._init_menubar()
         self._init_canv()
@@ -179,7 +181,7 @@ class App(ttk.Frame):
         )
         brush_width_slider.grid(row=6, pady=(1, PAD))
 
-        clear_btn = ttk.Button(frame, text="Clear", width=6)
+        clear_btn = ttk.Button(frame, text="Clear", width=6, command=self.clear)
         clear_btn.grid(row=7, pady=(0, PAD))
 
     def _init_bottombar(self, n_images: int = 2) -> None:
@@ -219,12 +221,20 @@ class App(ttk.Frame):
         apply_btn = ttk.Button(frame, text="Apply")
         apply_btn.grid(column=4, row=0)
 
+    # %% BUTTONS
     def load_image_from_filepaths(self, paths: tuple[str, ...]) -> None:
         piece: Piece | None = None
         for path in paths:
             piece = self.data_model.add_image(path)
         self.set_canvas_image(piece)
 
+    # def class_changed(self, number: int) -> None:
+    def clear(self) -> None:
+        current_piece = self.data_model.gallery[self.data_model.current_piece_idx]
+        current_piece.labels_arr *= 0
+        self.needs_updating = True
+
+    # %% CANVAS
     def set_canvas_image(self, piece: Piece | None) -> None:
         if piece is None:
             return
@@ -299,6 +309,8 @@ class App(ttk.Frame):
                 self.add_label(points)
             case "UNDO":
                 self.remove_last_label()
+            case "CLEAR":
+                self.clear()
             case _:
                 raise Exception(f"Undefined message type {header}")
 

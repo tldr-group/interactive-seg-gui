@@ -19,14 +19,16 @@ CANVAS_H: int = 600
 CANVAS_H_GRID: int = 5
 CANVAS_W_GRID: int = 1
 
+
 PAD: int = 10
 MENU_BAR_ROW: int = 0
 SIDE_BAR_COL: int = 0
 SIDE_COL: int = 2
+BOTTOM_BAR_IDX = MENU_BAR_ROW + CANVAS_H_GRID + 1
 
 MIN_TIME: float = 0.07
 
-MessageTypes = Literal["NOTIF", "TRAIN", "SEGMENT", "POINTS", "UNDO"]
+MessageTypes = Literal["NOTIF", "TRAIN", "SEGMENT", "POINTS", "UNDO", "CLEAR"]
 ProgressTypes = Literal["start", "stop", "progress", "N/A"]
 
 

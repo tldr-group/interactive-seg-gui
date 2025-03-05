@@ -36,6 +36,7 @@ class InteractiveCanvas(CanvasImage):
             self.label_val.get()
         ]  # self.app.class_colours[1]
 
+        self.prev_xy: tuple[int, int] = (0, 0)
         self.current_label_frac_points: list[tuple[float, float]] = []
 
         # self.canvas.bind("<Button-1>", self.left_click)
@@ -46,7 +47,7 @@ class InteractiveCanvas(CanvasImage):
         self.canvas.bind("<Control-z>", self.undo)
 
         self.canvas.bind("<Escape>", self.cancel)
-        # self.canvas.bind("<Delete>", self.delete)
+        self.canvas.bind("<Delete>", self._del_key_press)
 
         for i in range(10):
             self.canvas.bind(f"{i}", self._num_key_press)
@@ -62,6 +63,7 @@ class InteractiveCanvas(CanvasImage):
             return None
         else:
             x, y, _, _ = result
+            self.prev_xy = (x, y)
             self._mouse_motion_draw_cursor(x, y, int(self.brush_width.get()))
 
     def mouse_motion_while_click(self, event: tk.Event) -> None:
@@ -78,6 +80,7 @@ class InteractiveCanvas(CanvasImage):
         if result is None:
             return None
         else:
+            self.place_poly_point(*result, int(self.brush_width.get()))
             self.finish_poly(event)
 
     def cancel(self, _event: tk.Event) -> None:
@@ -91,11 +94,16 @@ class InteractiveCanvas(CanvasImage):
 
     # TODO: delete button that wipes all labels
 
-    def _num_key_press(self, event):
+    def _del_key_press(self, _event) -> None:
+        msg = Message("CLEAR", None)
+        self.queue.put(msg)
+
+    def _num_key_press(self, event) -> None:
         number = int(event.char)
         print(number)
         self.label_val.set(number)
         self.fill_colour = COLOURS[number]
+        self._mouse_motion_draw_cursor(*self.prev_xy, self.brush_width.get())
 
     # CONVERSION
     def _canvas_to_frac_coords(
