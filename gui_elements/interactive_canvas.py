@@ -30,10 +30,9 @@ class InteractiveCanvas(CanvasImage):
 
         self.label_val = tk.IntVar(parent, 1)  # 1
         self.brush_width = tk.IntVar(parent, 5)
+        self.erasing = tk.BooleanVar(parent, False)
 
-        self.fill_colour: str = COLOURS[
-            self.label_val.get()
-        ]  # self.app.class_colours[1]
+        self.fill_colour: str = COLOURS[self.label_val.get()]
 
         self.prev_xy: tuple[int, int] = (0, 0)
         self.current_label_frac_points: list[tuple[float, float]] = []
@@ -43,7 +42,11 @@ class InteractiveCanvas(CanvasImage):
         self.canvas.bind("<Motion>", self.mouse_motion)
         self.canvas.bind("<B1-Motion>", self.mouse_motion_while_click)
         self.canvas.bind("<ButtonRelease-1>", self.mouse_release)
+
         self.canvas.bind("<Control-z>", self.undo)
+        self.canvas.bind("e", self._e_key_pressed)
+        self.canvas.bind("-", lambda s: self.inc_brush_size(-1))
+        self.canvas.bind("=", lambda s: self.inc_brush_size(+1))
 
         self.canvas.bind("<Escape>", self.cancel)
         self.canvas.bind("<Delete>", self._del_key_press)
@@ -56,14 +59,12 @@ class InteractiveCanvas(CanvasImage):
         self.image_available = True
         self.current_img_hw = (pil_image.height, pil_image.width)
 
+    # %% BUTTONS
+
     def mouse_motion(self, event: tk.Event) -> None:
-        result = self._bounds_check_return_coords(event)
-        if result is None:
-            return None
-        else:
-            x, y, _, _ = result
-            self.prev_xy = (x, y)
-            self._mouse_motion_draw_cursor(x, y, int(self.brush_width.get()))
+        x, y = int(self.canvas.canvasx(event.x)), int(self.canvas.canvasy(event.y))
+        self.prev_xy = (x, y)
+        self._mouse_motion_draw_cursor(x, y, int(self.brush_width.get()))
 
     def mouse_motion_while_click(self, event: tk.Event) -> None:
         """For brush type labelling."""
@@ -97,12 +98,13 @@ class InteractiveCanvas(CanvasImage):
 
     def _num_key_press(self, event) -> None:
         number = int(event.char)
-        print(number)
-        self.label_val.set(number)
-        self.fill_colour = COLOURS[number]
+        self.set_label_class(number)
         self._mouse_motion_draw_cursor(*self.prev_xy, self.brush_width.get())
 
-    # CONVERSION
+    def _e_key_pressed(self, _event) -> None:
+        self.set_label_class(0)
+
+    # %% CONVERSION
     def _canvas_to_frac_coords(
         self, canvas_x: int, canvas_y: int
     ) -> tuple[float, float]:
@@ -133,19 +135,7 @@ class InteractiveCanvas(CanvasImage):
         canvas_x, canvas_y = self._frac_to_canvas_coords(frac_x, frac_y)
         return (canvas_x, canvas_y)
 
-    # LOGIC
-    def _bounds_check_return_coords(
-        self, event: tk.Event
-    ) -> tuple[int, int, float, float] | None:
-        bbox = self.canvas.coords(self.container)
-        x, y = int(self.canvas.canvasx(event.x)), int(self.canvas.canvasy(event.y))
-        if bbox[0] < x < bbox[2] and bbox[1] < y < bbox[3]:
-            frac_x, frac_y = self._canvas_to_frac_coords(x, y)
-            return x, y, frac_x, frac_y
-        else:
-            self.canvas.delete("animated")
-            return None
-
+    # %% DRAWING
     def place_poly_point(
         self, x: int, y: int, frac_x: float, frac_y: float, r: int
     ) -> None:
@@ -184,6 +174,34 @@ class InteractiveCanvas(CanvasImage):
         self.canvas.create_line(
             x0, y0, x, y, fill=self.fill_colour, width=2.2, tags="animated"
         )
+
+    # %% LOGIC
+    def inc_brush_size(self, val: int) -> None:
+        current_size = self.brush_width.get()
+        new_size = min(max(1, current_size + val), 60)
+        self.brush_width.set(new_size)
+        self._mouse_motion_draw_cursor(*self.prev_xy, new_size)
+        return None
+
+    def set_label_class(self, val: int) -> None:
+        if val == 0:
+            self.erasing.set(True)
+        else:
+            self.erasing.set(False)
+        self.label_val.set(val)
+        self.fill_colour = COLOURS[val]
+
+    def _bounds_check_return_coords(
+        self, event: tk.Event
+    ) -> tuple[int, int, float, float] | None:
+        bbox = self.canvas.coords(self.container)
+        x, y = int(self.canvas.canvasx(event.x)), int(self.canvas.canvasy(event.y))
+        if bbox[0] < x < bbox[2] and bbox[1] < y < bbox[3]:
+            frac_x, frac_y = self._canvas_to_frac_coords(x, y)
+            return x, y, frac_x, frac_y
+        else:
+            self.canvas.delete("animated")
+            return None
 
     def finish_poly(self, _event: tk.Event) -> None:
         """Submit current label to data_model, delete in progress gui stuff."""

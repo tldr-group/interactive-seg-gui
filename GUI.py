@@ -151,13 +151,16 @@ class App(ttk.Frame):
             width=3,
             values=options,
             state="readonly",
+            command=self.set_label_val,
         )
         # class_btn.set(str(self.canvas.label_val))
         class_btn.grid(row=1, pady=(0, PAD))
 
         erase_text = ttk.Label(frame, text="Erase:")
         erase_text.grid(row=2)
-        erase = ttk.Checkbutton(frame)
+        erase = ttk.Checkbutton(
+            frame, variable=self.canvas.erasing, command=self.on_erase_toggle
+        )
         erase.grid(row=3, pady=(0, PAD))
 
         width_text = ttk.Label(frame, text="Width:")
@@ -247,6 +250,19 @@ class App(ttk.Frame):
         self.set_canvas_image(new_piece, False)
 
         self.needs_updating = True
+
+    def on_erase_toggle(self) -> None:
+        is_erasing = self.canvas.erasing.get()
+        if is_erasing:
+            self.set_label_val(0)
+        else:
+            self.set_label_val(1)
+
+    def set_label_val(self, val: int | None = None) -> None:
+        if val is None:
+            val = self.canvas.label_val.get()
+        self.canvas.set_label_class(val)
+        return None
 
     # %% BUTTONS
     def load_image_from_filepaths(self, paths: tuple[str, ...]) -> None:
@@ -379,6 +395,7 @@ class MenuBar(tk.Menu):
         data_name_fn_pairs: list[tuple[str, Callable]] = [
             ("Add Image", self._load_images),
             ("Remove Image", _foo),
+            ("Remove All", _foo),
         ]
         data_menu = self._make_dropdown(data_name_fn_pairs)
         self.add_cascade(label="Data", menu=data_menu)
@@ -388,7 +405,6 @@ class MenuBar(tk.Menu):
             ("Train Classifier", _foo),
             ("Apply Classifier", _foo),
             ("Load Classifier", _foo),
-            ("Save Classifier", _foo),
         ]
         classifier_menu = self._make_dropdown(classifier_name_fn_pairs)
         self.add_cascade(label="Classifier", menu=classifier_menu)
