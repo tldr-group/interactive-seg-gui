@@ -85,6 +85,8 @@ class App(ttk.Frame):
         self.root = root
         self.data_model = data_model
 
+        self.current_piece_idx = tk.IntVar(self, value=0)
+
         self.overlay_needs_updating: bool = False
         self.seg_overlay_alpha: float = 1.0
         self.label_overlay_alpha: float = 0.7
@@ -201,64 +203,88 @@ class App(ttk.Frame):
             image_text = ttk.Label(tmp_frame, text="Image:")
             image_text.grid(row=0, column=0)
             image_spinbox = ttk.Spinbox(
-                tmp_frame, from_=0, to=n_images, increment=1, width=3
+                tmp_frame,
+                textvariable=self.current_piece_idx,
+                from_=0,
+                to=n_images - 1,
+                increment=1,
+                width=3,
+                command=self.set_current_pice,
             )
             image_spinbox.grid(row=0, column=1)
 
             image_slider = tk.Scale(
                 tmp_frame,
                 from_=0,
-                to=n_images,
-                variable=self.canvas.brush_width,
+                to=n_images - 1,
+                variable=self.current_piece_idx,
                 orient="horizontal",
                 length=400,
                 resolution=1,
                 showvalue=False,
+                command=lambda s: self.set_current_pice(int(s)),
             )
             image_slider.grid(row=0, column=2)
         tmp_frame.grid(row=0, column=2)
         frame.columnconfigure(2, weight=1)
 
         train_btn = ttk.Button(frame, text="Train")
-        train_btn.grid(column=3, row=0)
+        train_btn.grid(column=3, row=0, pady=(4, 4))
 
         apply_btn = ttk.Button(frame, text="Apply")
         apply_btn.grid(column=4, row=0)
 
+    # %% LOGIC
+
+    def get_current_piece(self) -> Piece:
+        idx = self.current_piece_idx.get()
+        return self.data_model.gallery[idx]
+
+    def set_current_pice(self, new_val: int | None = None) -> None:
+        if new_val is None:
+            new_val = self.current_piece_idx.get()
+        new_piece = self.data_model.gallery[new_val]
+        self.set_canvas_image(new_piece, False)
+
+        self.needs_updating = True
+
     # %% BUTTONS
     def load_image_from_filepaths(self, paths: tuple[str, ...]) -> None:
-        piece: Piece | None = None
         for path in paths:
             piece = self.data_model.add_image(path)
-        self.set_canvas_image(piece)
+        self.set_canvas_image(piece, True)
 
         n_imgs = len(self.data_model.gallery)
+        self.current_piece_idx.set(n_imgs - 1)
+        self.set_current_pice(n_imgs - 1)
         if n_imgs > 1:
             self._init_bottombar(n_imgs)
 
     # def class_changed(self, number: int) -> None:
     def clear(self) -> None:
-        current_piece = self.data_model.gallery[self.data_model.current_piece_idx]
+        current_piece = self.get_current_piece()
         current_piece.labels_arr *= 0
         self.needs_updating = True
 
     # %% CANVAS
-    def set_canvas_image(self, piece: Piece | None) -> None:
+    def set_canvas_image(self, piece: Piece | None, new: bool = False) -> None:
         if piece is None:
             return
-        self.canvas.set_current_image(piece.img, True)
+        self.canvas.set_current_image(piece.img, new)
 
     def add_label(self, points: list[Point]) -> None:
+        idx = self.current_piece_idx.get()
         self.data_model.create_and_add_labels_from_points(
             points,
-            self.data_model.current_piece_idx,
+            idx,
             self.canvas.label_val.get(),
             self.canvas.brush_width.get(),
         )
 
     def remove_last_label(self) -> None:
+        idx = self.current_piece_idx.get()
         self.data_model.remove_last_label(
-            self.data_model.current_piece_idx,
+            idx,
         )
 
     def get_img_from_seg(
@@ -275,7 +301,7 @@ class App(ttk.Frame):
         self.needs_updating = False
         if len(self.data_model.gallery) == 0:  # early return if no data
             return None
-        current_piece = self.data_model.gallery[self.data_model.current_piece_idx]
+        current_piece = self.get_current_piece()
         h, w = (current_piece.h, current_piece.w)
 
         new_img = Image.new(size=(w, h), mode="RGBA")

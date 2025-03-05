@@ -102,7 +102,6 @@ class DataModel(object):
         init_msg = Message("NOTIF", "microSeg v0.01 04/03/25")
         self.out_queue.put(init_msg)
 
-        self.current_piece_idx: int = 0
         self.gallery: list[Piece] = []
 
     def add_image(self, filepath: str, add_to_gallery: bool = True) -> Piece:

@@ -1,6 +1,5 @@
 import tkinter as tk
 from queue import Queue
-from PIL import Image
 
 from gui_elements.zoomable_canvas import CanvasImage
 from gui_elements.constants import Message, COLOURS
@@ -91,8 +90,6 @@ class InteractiveCanvas(CanvasImage):
     def undo(self, _event: tk.Event) -> None:
         msg = Message("UNDO", None)
         self.queue.put(msg)
-
-    # TODO: delete button that wipes all labels
 
     def _del_key_press(self, _event) -> None:
         msg = Message("CLEAR", None)
