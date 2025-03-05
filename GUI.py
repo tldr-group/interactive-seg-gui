@@ -68,6 +68,8 @@ def _make_frame_contents_expand(frame: tk.Tk | tk.Frame | ttk.LabelFrame, i=5):
         frame.columnconfigure(index=idx, weight=1)
         frame.rowconfigure(index=idx, weight=1)
 
+    frame.columnconfigure(index=0, weight=0)  # stop sidebar expanding
+
 
 class App(ttk.Frame):
     """Parent widget for GUI. Contains event scheduler in listen() method."""
@@ -134,7 +136,7 @@ class App(ttk.Frame):
         )
 
         class_text = ttk.Label(frame, text="Class:")
-        class_text.grid(row=0, pady=(4, 0), padx=(1 + PAD * 1.5, 1 + PAD * 1.5))
+        class_text.grid(row=0, pady=(4, 0), padx=(2 + PAD * 1.5, 2 + PAD * 1.5))
         options = [str(i) for i in range(1, 9)]
         class_btn = ttk.Spinbox(
             frame,
@@ -155,7 +157,12 @@ class App(ttk.Frame):
         width_text.grid(row=4)
 
         brush_width_combo = ttk.Spinbox(
-            frame, textvariable=self.canvas.brush_width, width=3
+            frame,
+            textvariable=self.canvas.brush_width,
+            width=3,
+            from_=1,
+            to=60,
+            increment=1,
         )
         brush_width_combo.grid(row=5)
 

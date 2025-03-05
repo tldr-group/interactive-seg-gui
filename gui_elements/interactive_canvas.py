@@ -94,8 +94,8 @@ class InteractiveCanvas(CanvasImage):
     def _num_key_press(self, event):
         number = int(event.char)
         print(number)
-        self.label_val = number
-        self.fill_colour = COLOURS[self.label_val]
+        self.label_val.set(number)
+        self.fill_colour = COLOURS[number]
 
     # CONVERSION
     def _canvas_to_frac_coords(

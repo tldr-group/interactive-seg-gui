@@ -100,7 +100,7 @@ class DataModel(object):
         self.in_queue: Queue[Message] = Queue(maxsize=40)
         self.out_queue: Queue[Message] = Queue(maxsize=40)
 
-        init_msg = Message("NOTIF", "hello world")
+        init_msg = Message("NOTIF", "microSeg v0.01 04/03/25")
         self.out_queue.put(init_msg)
 
         self.current_piece_idx: int = 0
