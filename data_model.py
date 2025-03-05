@@ -29,8 +29,7 @@ def draw_points_get_arr(
     label_val: int,
     brush_width: int,
 ) -> np.ndarray:
-    o = brush_width
-    temp_arr = np.zeros((box_h, box_w), dtype=np.int16)
+    temp_arr = np.zeros((box_h, box_w), dtype=np.int16) - 1
     for p in points:
         rr, cc = ellipse(p[1] - y0, p[0] - x0, brush_width, brush_width)
         temp_arr[rr, cc] = label_val
@@ -43,6 +42,7 @@ def label_from_points(
     label_val: int,
     brush_width: int,
     update_seg_arr: bool = True,
+    non_overwriting: bool = True,
 ) -> Label:
     o = brush_width
     xs, ys = [p[0] for p in points], [p[1] for p in points]
@@ -56,7 +56,12 @@ def label_from_points(
     prev_state = seg_arr[y0:y1, x0:x1]
 
     diff = new_label - prev_state
-    diff *= new_label > 0
+    diff *= new_label >= 0
+
+    erasing = label_val == 0
+    if non_overwriting and not erasing:
+        diff *= ~(prev_state > 0)
+
     if update_seg_arr:
         seg_arr[y0:y1, x0:x1] += diff
     return Label(x0, y0, bbox, diff)
