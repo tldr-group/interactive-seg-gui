@@ -16,6 +16,7 @@ from gui_elements.constants import (
     CANVAS_W,
     CANVAS_H_GRID,
     CANVAS_W_GRID,
+    BOTTOM_BAR_IDX,
 )
 from gui_elements.interactive_canvas import InteractiveCanvas
 from data_model import DataModel, Piece, Message, Point
@@ -69,6 +70,7 @@ def _make_frame_contents_expand(frame: tk.Tk | tk.Frame | ttk.LabelFrame, i=5):
         frame.rowconfigure(index=idx, weight=1)
 
     frame.columnconfigure(index=0, weight=0)  # stop sidebar expanding
+    frame.rowconfigure(index=BOTTOM_BAR_IDX, weight=0)
 
 
 class App(ttk.Frame):
@@ -102,6 +104,7 @@ class App(ttk.Frame):
         self._init_menubar()
         self._init_canv()
         self._init_sidebar()
+        self._init_bottombar()
 
     def _init_menubar(self) -> None:
         self.menu_bar = MenuBar(self.root, self)
@@ -176,6 +179,46 @@ class App(ttk.Frame):
         )
         brush_width_slider.grid(row=6, pady=(1, PAD))
 
+        clear_btn = ttk.Button(frame, text="Clear", width=6)
+        clear_btn.grid(row=7, pady=(0, PAD))
+
+    def _init_bottombar(self, n_images: int = 2) -> None:
+        frame = ttk.Frame(self, relief="groove", borderwidth=2)
+        frame.grid(
+            row=BOTTOM_BAR_IDX, column=0, columnspan=CANVAS_W_GRID + 1, sticky="ew"
+        )
+
+        text = ttk.Label(frame, text="    ")
+        text.grid(column=0)
+
+        tmp_frame = ttk.Frame(frame)
+
+        if n_images > 0:
+            image_text = ttk.Label(tmp_frame, text="Image:")
+            image_text.grid(row=0, column=0)
+            image_spinbox = ttk.Spinbox(
+                tmp_frame, from_=0, to=n_images, increment=1, width=3
+            )
+            image_spinbox.grid(row=0, column=1)
+
+            image_slider = ttk.Scale(
+                tmp_frame,
+                from_=0,
+                to=n_images,
+                variable=self.canvas.brush_width,
+                orient="horizontal",
+                length=400,
+            )
+            image_slider.grid(row=0, column=2)
+        tmp_frame.grid(row=0, column=2)
+        frame.columnconfigure(2, weight=1)
+
+        train_btn = ttk.Button(frame, text="Train")
+        train_btn.grid(column=3, row=0)
+
+        apply_btn = ttk.Button(frame, text="Apply")
+        apply_btn.grid(column=4, row=0)
+
     def load_image_from_filepaths(self, paths: tuple[str, ...]) -> None:
         piece: Piece | None = None
         for path in paths:
@@ -188,7 +231,6 @@ class App(ttk.Frame):
         self.canvas.set_current_image(piece.img, True)
 
     def add_label(self, points: list[Point]) -> None:
-        v = self.canvas.label_val.get()
         self.data_model.create_and_add_labels_from_points(
             points,
             self.data_model.current_piece_idx,
