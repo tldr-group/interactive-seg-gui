@@ -29,7 +29,9 @@ BOTTOM_BAR_IDX = MENU_BAR_ROW + CANVAS_H_GRID + 1
 MIN_TIME: float = 0.07
 N_PREVIEW_SLICES: int = 10
 
-MessageTypes = Literal["NOTIF", "TRAIN", "SEGMENT", "POINTS", "UNDO", "CLEAR"]
+MessageTypes = Literal[
+    "NOTIF", "TRAIN", "SEGMENT", "POINTS", "UNDO", "CLEAR", "CLASSIFIER"
+]
 ProgressTypes = Literal["start", "stop", "progress", "N/A"]
 
 

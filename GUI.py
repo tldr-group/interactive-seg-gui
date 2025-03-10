@@ -247,7 +247,9 @@ class App(ttk.Frame):
         tmp_frame.grid(row=0, column=2)
         frame.columnconfigure(2, weight=1)
 
-        train_btn = ttk.Button(frame, text="Train")
+        train_btn = ttk.Button(
+            frame, text="Train", command=self.data_model.threaded_train
+        )
         train_btn.grid(column=3, row=0, pady=(4, 4))
 
         apply_btn = ttk.Button(frame, text="Apply")

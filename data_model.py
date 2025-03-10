@@ -5,19 +5,30 @@ from tifffile import imread
 from skimage.draw import ellipse
 from PIL import Image
 from os import getcwd, mkdir, listdir
+from os.path import exists
 from shutil import rmtree
 from multiprocessing import Process, set_start_method
+from multiprocessing import Queue as MPQueue
 
 from typing import TypeAlias
 from gui_elements.constants import N_PREVIEW_SLICES, Message
 from dataclasses import dataclass
 
-from interactive_seg_backend import featurise, FeatureConfig
+
+from interactive_seg_backend import featurise, Classifier
+from interactive_seg_backend.configs import FeatureConfig, TrainingConfig
+from interactive_seg_backend.core import (
+    get_training_data,
+    shuffle_sample_training_data,
+    get_model,
+    train,
+)
 
 Point: TypeAlias = tuple[float, float]
 
 CWD = getcwd()
-DEFAULT_CONFIG = FeatureConfig(mean=True, minimum=True, maximum=True)
+DEFAULT_FEAT_CONFIG = FeatureConfig(mean=True, minimum=True, maximum=True)
+DEFAULT_TRAIN_CONFIG = TrainingConfig(DEFAULT_FEAT_CONFIG)
 
 # set_start_method("spawn", force=True)
 
@@ -122,15 +133,33 @@ def check_if_arr_is_volume(arr: np.ndarray) -> bool:
         return False
 
 
+def train_from_paths(
+    feature_paths: list[str], labels: list[np.ndarray], queue: Queue[Message]
+) -> None:
+    tc = DEFAULT_TRAIN_CONFIG
+    print(feature_paths)
+    fit, target = get_training_data(feature_paths, labels)
+    fit, target = shuffle_sample_training_data(
+        fit, target, tc.shuffle_data, tc.n_samples
+    )
+    classifier = get_model(tc.classifier, tc.classifier_params)
+    classifier = train(classifier, fit, target, sample_weight=None)
+    msg = Message("CLASSIFIER", classifier)
+    queue.put(msg)
+    return
+
+
 class DataModel(object):
     def __init__(self) -> None:
-        self.in_queue: Queue[Message] = Queue(maxsize=40)
+        self.in_queue: MPQueue[Message] = MPQueue(maxsize=40)
         self.out_queue: Queue[Message] = Queue(maxsize=40)
 
         init_msg = Message("NOTIF", "microSeg v0.01 04/03/25")
         self.out_queue.put(init_msg)
 
         self.gallery: list[Piece] = []
+
+        self.classifier: Classifier | None = None
 
         self.cache_dir = f"{CWD}/.isb_tmp"
         try:
@@ -139,6 +168,7 @@ class DataModel(object):
             rmtree(self.cache_dir)
             mkdir(self.cache_dir)
 
+    # %% I/O
     def add_image(self, filepath: str, add_to_gallery: bool = True) -> Piece:
         extension: str = filepath.split(".")[-1]
         if extension.lower() not in ["png", "jpg", "jpeg", "tif", "bmp", "tiff"]:
@@ -161,21 +191,6 @@ class DataModel(object):
 
         return new_piece
 
-    def threaded_featurise(self, prev_n: int) -> None:
-        start_idx = max(0, prev_n - 1)
-        inds = [prev_n + i for i in range(len(self.gallery[start_idx:]))]
-        self.worker = Process(target=self.get_features, args=(self.gallery, inds))
-        self.worker.start()
-
-    def get_features(self, pieces: list[Piece], save_inds: list[int]) -> None:
-        for idx, piece in zip(save_inds, pieces):
-            featurise(
-                piece.img_arr,
-                DEFAULT_CONFIG,
-                False,
-                f"{self.cache_dir}/feature_stack_{idx}.npy",
-            )
-
     def add_volume(self, arr: np.ndarray, add_to_gallery: bool = True) -> Piece:
         n_slices = arr.shape[0]
         n_preview = min(N_PREVIEW_SLICES, n_slices)
@@ -193,6 +208,7 @@ class DataModel(object):
     def remove_image(self, idx: int) -> None:
         self.gallery.pop(idx)
 
+    # %% LABELLING
     def create_and_add_labels_from_points(
         self, points: list[Point], piece_idx: int, label_val: int, brush_width: int
     ) -> None:
@@ -211,3 +227,48 @@ class DataModel(object):
 
         if len(piece.labels) == 0:
             piece.labelled = False
+
+    # %% CLASSIFIER INTEROP
+    def threaded_featurise(self, prev_n: int) -> None:
+        start_idx = max(0, prev_n - 1)
+        inds = [prev_n + i for i in range(len(self.gallery[start_idx:]))]
+        self.worker = Process(target=self.get_features, args=(self.gallery, inds))
+        self.worker.start()
+        self.worker.join()
+        # TODO: make this explict warning
+        print("Finished featurising")
+
+    def get_features(self, pieces: list[Piece], save_inds: list[int]) -> None:
+        for idx, piece in zip(save_inds, pieces):
+            featurise(
+                piece.img_arr,
+                DEFAULT_FEAT_CONFIG,
+                False,
+                f"{self.cache_dir}/feature_stack_{idx}.npy",
+            )
+
+    def threaded_train(self) -> None:
+        paths: list[str] = []
+        labels: list[np.ndarray] = []
+        for i, piece in enumerate(self.gallery):
+            if piece.labelled:
+                paths.append(f"{self.cache_dir}/feature_stack_{i}.npy")
+                labels.append(piece.labels_arr)
+
+        for path in paths:
+            stack_exists = exists(path)
+            if not stack_exists:
+                # TODO: make this explict warning
+                print("Not finished featurising!")
+                return
+
+        self.train_worker = Process(
+            target=train_from_paths, args=(paths, labels, self.in_queue)
+        )
+        self.train_worker.start()
+        self.train_worker.join()
+
+        classifier_message = self.in_queue.get()
+        assert classifier_message.category == "CLASSIFIER"
+
+        self.classifier = classifier_message.data
