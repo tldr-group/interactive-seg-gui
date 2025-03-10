@@ -78,7 +78,10 @@ class App(ttk.Frame):
     """Parent widget for GUI. Contains event scheduler in listen() method."""
 
     def __init__(
-        self, root: tk.Tk, data_model: DataModel, initial_img_path: str | None = None
+        self,
+        root: tk.Tk,
+        data_model: DataModel,
+        initial_img_paths: tuple[str, ...] | None = None,
     ) -> None:
         """Take $root and assign it to attr .root. Inits other widgets and starts scheduler."""
         ttk.Frame.__init__(self)
@@ -98,8 +101,8 @@ class App(ttk.Frame):
 
         self.init_widgets()
 
-        if initial_img_path is not None:
-            self.load_image_from_filepaths((initial_img_path,))
+        if initial_img_paths is not None:
+            self.load_image_from_filepaths(initial_img_paths)
 
         self.event_loop()
 
@@ -279,6 +282,7 @@ class App(ttk.Frame):
 
     # %% BUTTONS
     def load_image_from_filepaths(self, paths: tuple[str, ...]) -> None:
+        n_imgs_prev = len(self.data_model.gallery)
         for path in paths:
             piece = self.data_model.add_image(path)
         self.set_canvas_image(piece, True)
@@ -288,6 +292,8 @@ class App(ttk.Frame):
         self.set_current_pice(n_imgs - 1)
         if n_imgs > 1:
             self._init_bottombar(n_imgs)
+
+        self.data_model.threaded_featurise(n_imgs_prev)
 
     # def class_changed(self, number: int) -> None:
     def clear(self) -> None:

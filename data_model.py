@@ -4,12 +4,22 @@ from tifffile import imread
 
 from skimage.draw import ellipse
 from PIL import Image
+from os import getcwd, mkdir, listdir
+from shutil import rmtree
+from multiprocessing import Process, set_start_method
 
 from typing import TypeAlias
 from gui_elements.constants import N_PREVIEW_SLICES, Message
 from dataclasses import dataclass
 
+from interactive_seg_backend import featurise, FeatureConfig
+
 Point: TypeAlias = tuple[float, float]
+
+CWD = getcwd()
+DEFAULT_CONFIG = FeatureConfig(mean=True, minimum=True, maximum=True)
+
+# set_start_method("spawn", force=True)
 
 
 @dataclass
@@ -51,7 +61,7 @@ def label_from_points(
 
     h, w = (y1 - y0), (x1 - x0)
     bbox = (x0, y0, x1, y1)
-    # TODO: consider how erasing works
+
     new_label = draw_points_get_arr(points, h, w, y0, x0, label_val, brush_width)
     prev_state = seg_arr[y0:y1, x0:x1]
 
@@ -122,6 +132,13 @@ class DataModel(object):
 
         self.gallery: list[Piece] = []
 
+        self.cache_dir = f"{CWD}/.isb_tmp"
+        try:
+            mkdir(self.cache_dir)
+        except FileExistsError:
+            rmtree(self.cache_dir)
+            mkdir(self.cache_dir)
+
     def add_image(self, filepath: str, add_to_gallery: bool = True) -> Piece:
         extension: str = filepath.split(".")[-1]
         if extension.lower() not in ["png", "jpg", "jpeg", "tif", "bmp", "tiff"]:
@@ -143,6 +160,21 @@ class DataModel(object):
             self.gallery.append(new_piece)
 
         return new_piece
+
+    def threaded_featurise(self, prev_n: int) -> None:
+        start_idx = max(0, prev_n - 1)
+        inds = [prev_n + i for i in range(len(self.gallery[start_idx:]))]
+        self.worker = Process(target=self.get_features, args=(self.gallery, inds))
+        self.worker.start()
+
+    def get_features(self, pieces: list[Piece], save_inds: list[int]) -> None:
+        for idx, piece in zip(save_inds, pieces):
+            featurise(
+                piece.img_arr,
+                DEFAULT_CONFIG,
+                False,
+                f"{self.cache_dir}/feature_stack_{idx}.npy",
+            )
 
     def add_volume(self, arr: np.ndarray, add_to_gallery: bool = True) -> Piece:
         n_slices = arr.shape[0]
