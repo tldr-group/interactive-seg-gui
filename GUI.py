@@ -21,6 +21,10 @@ from gui_elements.constants import (
 from gui_elements.interactive_canvas import InteractiveCanvas
 from data_model import DataModel, Piece, Message, Point
 
+from interactive_seg_backend.file_handling import save_segmentation, save_labels
+from interactive_seg_backend.classifiers import load_classifier
+
+
 from typing import Callable, Literal, Union
 
 
@@ -247,9 +251,7 @@ class App(ttk.Frame):
         tmp_frame.grid(row=0, column=2)
         frame.columnconfigure(2, weight=1)
 
-        train_btn = ttk.Button(
-            frame, text="Train", command=self.data_model.threaded_train
-        )
+        train_btn = ttk.Button(frame, text="Train", command=self.data_model.train_)
         train_btn.grid(column=3, row=0, pady=(4, 4))
 
         apply_btn = ttk.Button(frame, text="Apply")
@@ -282,6 +284,14 @@ class App(ttk.Frame):
         self.canvas.set_label_class(val)
         return None
 
+    def save_seg(self, path: str) -> None:
+        piece = self.data_model.gallery[self.current_piece_idx.get()]
+        save_segmentation(piece.seg_arr, path)
+
+    def save_labels(self, path: str) -> None:
+        piece = self.data_model.gallery[self.current_piece_idx.get()]
+        save_labels(piece.labels_arr, path)
+
     # %% BUTTONS
     def load_image_from_filepaths(self, paths: tuple[str, ...]) -> None:
         n_imgs_prev = len(self.data_model.gallery)
@@ -295,7 +305,7 @@ class App(ttk.Frame):
         if n_imgs > 1:
             self._init_bottombar(n_imgs)
 
-        self.data_model.threaded_featurise(n_imgs_prev)
+        self.data_model.get_features(n_imgs_prev)
 
     # def class_changed(self, number: int) -> None:
     def clear(self) -> None:
@@ -390,6 +400,8 @@ class App(ttk.Frame):
                 self.remove_last_label()
             case "CLEAR":
                 self.clear()
+            case "SEGMENT":
+                self.needs_updating = True
             case _:
                 raise Exception(f"Undefined message type {header}")
 
@@ -425,6 +437,7 @@ class MenuBar(tk.Menu):
             ("Add Image", self._load_images),
             ("Remove Image", _foo),
             ("Remove All", _foo),
+            ("Load labels", _foo),
         ]
         data_menu = self._make_dropdown(data_name_fn_pairs)
         self.add_cascade(label="Data", menu=data_menu)
@@ -441,9 +454,9 @@ class MenuBar(tk.Menu):
         # self.add_command(label="Post-Process", command=_foo)  # type: ignore
 
         save_name_fn_pairs: list[tuple[str, Callable]] = [
-            ("Save Segmentation", _foo),
-            ("Save Labels", _foo),
-            ("Save Classifier", _foo),
+            ("Save Segmentation", self._save_segmentation),
+            ("Save Labels", self._save_labels),
+            ("Save Classifier", self._save_classifier),
         ]
         save_menu = self._make_dropdown(save_name_fn_pairs)
         self.add_cascade(label="Save", menu=save_menu)
@@ -471,23 +484,32 @@ class MenuBar(tk.Menu):
         if file_path == "":
             return
         else:
-            pass
-            # self.app.data_model.model.load_model(file_path)
+            classifier = load_classifier(file_path)
+            self.app.data_model.classifier = classifier
 
     def _save_classifier(self) -> None:
-        f = fd.asksaveasfile(mode="wb", defaultextension=".pkl")
+        f = fd.asksaveasfilename(initialfile="classifier.pkl", defaultextension=".pkl")
         if f is None:
             return
         else:
-            pass
-            # self.app.data_model.model.save_model(f)
-            f.close()
+            classifier = self.app.data_model.classifier
+            assert classifier is not None
+            classifier.save(f)
 
     def _save_segmentation(self) -> None:
-        f = fd.asksaveasfile(mode="wb", defaultextension=".tiff")
+        n = self.app.current_piece_idx.get()
+        f = fd.asksaveasfilename(initialfile=f"seg_{n}.tiff", defaultextension=".tiff")
         if f is None:
             return
         else:
             pass
-            # self.app.data_model.save_seg(f)
-            f.close()
+            self.app.save_seg(f)
+
+    def _save_labels(self) -> None:
+        n = self.app.current_piece_idx.get()
+        f = fd.asksaveasfilename(initialfile=f"seg_{n}.tiff", defaultextension=".tiff")
+        if f is None:
+            return
+        else:
+            pass
+            self.app.save_labels(f)
