@@ -17,18 +17,20 @@ from dataclasses import dataclass
 
 from interactive_seg_backend import featurise, Classifier
 from interactive_seg_backend.configs import FeatureConfig, TrainingConfig
+from interactive_seg_backend.file_handling import load_featurestack
 from interactive_seg_backend.core import (
     get_training_data,
     shuffle_sample_training_data,
     get_model,
     train,
+    apply,
 )
 
 Point: TypeAlias = tuple[float, float]
 
 CWD = getcwd()
 DEFAULT_FEAT_CONFIG = FeatureConfig(mean=True, minimum=True, maximum=True)
-DEFAULT_TRAIN_CONFIG = TrainingConfig(DEFAULT_FEAT_CONFIG)
+DEFAULT_TRAIN_CONFIG = TrainingConfig(DEFAULT_FEAT_CONFIG, CRF=True)
 
 # set_start_method("spawn", force=True)
 
@@ -112,9 +114,9 @@ class Piece:
         self.w: int = shape[1]
 
         # integer arr where 0 = not labelled and N > 0 indicates a label for class N at that pixel
-        self.labels_arr: np.ndarray = np.zeros(shape, dtype=np.int16)
+        self.labels_arr: np.ndarray = np.zeros((self.h, self.w), dtype=np.int16)
         # integer arr where value N at pixel P indicates the classifier thinks P is class N
-        self.seg_arr: np.ndarray = np.zeros(shape, dtype=np.int16)
+        self.seg_arr: np.ndarray = np.zeros((self.h, self.w), dtype=np.int16)
 
         # boolean arr where 1 = show this pixel in the overlay and 0 means hide. Used for hiding/showing labels later.
         self.label_alpha_mask = np.ones_like(self.seg_arr, dtype=bool)
@@ -133,9 +135,7 @@ def check_if_arr_is_volume(arr: np.ndarray) -> bool:
         return False
 
 
-def train_from_paths(
-    feature_paths: list[str], labels: list[np.ndarray], queue: Queue[Message]
-) -> None:
+def train_from_paths(feature_paths: list[str], labels: list[np.ndarray]) -> Classifier:
     tc = DEFAULT_TRAIN_CONFIG
     print(feature_paths)
     fit, target = get_training_data(feature_paths, labels)
@@ -144,9 +144,7 @@ def train_from_paths(
     )
     classifier = get_model(tc.classifier, tc.classifier_params)
     classifier = train(classifier, fit, target, sample_weight=None)
-    msg = Message("CLASSIFIER", classifier)
-    queue.put(msg)
-    return
+    return classifier
 
 
 class DataModel(object):
@@ -229,25 +227,24 @@ class DataModel(object):
             piece.labelled = False
 
     # %% CLASSIFIER INTEROP
-    def threaded_featurise(self, prev_n: int) -> None:
+    def get_features(self, prev_n: int) -> None:
         start_idx = max(0, prev_n - 1)
         inds = [prev_n + i for i in range(len(self.gallery[start_idx:]))]
-        self.worker = Process(target=self.get_features, args=(self.gallery, inds))
-        self.worker.start()
-        self.worker.join()
-        # TODO: make this explict warning
+        pieces = [self.gallery[i] for i in inds]
+        self._get_features(pieces, inds)
         print("Finished featurising")
 
-    def get_features(self, pieces: list[Piece], save_inds: list[int]) -> None:
+    def _get_features(self, pieces: list[Piece], save_inds: list[int]) -> None:
         for idx, piece in zip(save_inds, pieces):
             featurise(
                 piece.img_arr,
-                DEFAULT_FEAT_CONFIG,
+                DEFAULT_TRAIN_CONFIG,
                 False,
                 f"{self.cache_dir}/feature_stack_{idx}.npy",
             )
 
-    def threaded_train(self) -> None:
+    def train_(self) -> None:
+        # no point in threading any of these if you just call join lol
         paths: list[str] = []
         labels: list[np.ndarray] = []
         for i, piece in enumerate(self.gallery):
@@ -262,13 +259,19 @@ class DataModel(object):
                 print("Not finished featurising!")
                 return
 
-        self.train_worker = Process(
-            target=train_from_paths, args=(paths, labels, self.in_queue)
-        )
-        self.train_worker.start()
-        self.train_worker.join()
+        classifier = train_from_paths(paths, labels)
+        self.classifier = classifier
 
-        classifier_message = self.in_queue.get()
-        assert classifier_message.category == "CLASSIFIER"
+        self.apply_()
 
-        self.classifier = classifier_message.data
+    def apply_(self) -> None:
+        assert self.classifier is not None
+        for i, piece in enumerate(self.gallery):
+            path = f"{self.cache_dir}/feature_stack_{i}.npy"
+            stack = load_featurestack(path)
+            seg, _ = apply(
+                self.classifier, stack, DEFAULT_TRAIN_CONFIG, image=piece.img_arr
+            )
+            piece.seg_arr = seg + 1
+            piece.segmented = True
+        self.out_queue.put(Message("SEGMENT", None))
