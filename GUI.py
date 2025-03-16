@@ -21,7 +21,11 @@ from gui_elements.constants import (
 from gui_elements.interactive_canvas import InteractiveCanvas
 from data_model import DataModel, Piece, Message, Point
 
-from interactive_seg_backend.file_handling import save_segmentation, save_labels
+from interactive_seg_backend.file_handling import (
+    save_segmentation,
+    save_labels,
+    load_labels,
+)
 from interactive_seg_backend.classifiers import load_classifier
 
 
@@ -313,6 +317,16 @@ class App(ttk.Frame):
         current_piece.labels_arr *= 0
         self.needs_updating = True
 
+    def remove_all(self) -> None:
+        self.current_piece_idx.set(0)
+        self.data_model.gallery = []
+        self.needs_updating = False
+        self.canvas.image_available = False
+        self.canvas.current_img_hw = (0, 0)
+        self.canvas.destroy()
+        self._init_canv()
+        # self.canvas.__init__(self, self.data_model.out_queue)
+
     # def remove_image(self) -> None:
     #     self.ch
 
@@ -436,17 +450,17 @@ class MenuBar(tk.Menu):
         data_name_fn_pairs: list[tuple[str, Callable]] = [
             ("Add Image", self._load_images),
             ("Remove Image", _foo),
-            ("Remove All", _foo),
-            ("Load labels", _foo),
+            ("Remove All", self.app.remove_all),
+            ("Load labels", self._load_labels),
         ]
         data_menu = self._make_dropdown(data_name_fn_pairs)
         self.add_cascade(label="Data", menu=data_menu)
 
         classifier_name_fn_pairs: list[tuple[str, Callable]] = [
-            ("New Classifier", _foo),
-            ("Train Classifier", _foo),
-            ("Apply Classifier", _foo),
-            ("Load Classifier", _foo),
+            ("New Classifier", self._clear_classifier),
+            ("Train Classifier", self._train_classifier),
+            ("Apply Classifier", self._apply_classifier),
+            ("Load Classifier", self._load_classifier),
         ]
         classifier_menu = self._make_dropdown(classifier_name_fn_pairs)
         self.add_cascade(label="Classifier", menu=classifier_menu)
@@ -478,6 +492,31 @@ class MenuBar(tk.Menu):
             pass
         else:
             self.app.load_image_from_filepaths(file_paths)
+
+    def _load_labels(self) -> None:
+        file_path = open_file_dialog_return_fps(
+            title="Load Labels",
+            file_type_name="Labels",
+            file_types_string=".tif .tiff .TIFF",
+        )[0]
+        if file_path == "":
+            return
+        else:
+            labels = load_labels(file_path)
+            idx = self.app.current_piece_idx.get()
+            piece = self.app.data_model.gallery[idx]
+            piece.labels_arr = labels
+            piece.labelled = True
+            self.app.needs_updating = True
+
+    def _clear_classifier(self) -> None:
+        self.app.data_model.classifier = None
+
+    def _train_classifier(self) -> None:
+        self.app.data_model.train_()
+
+    def _apply_classifier(self) -> None:
+        self.app.data_model.apply_()
 
     def _load_classifier(self) -> None:
         file_path = open_file_dialog_return_fp(title="Load Classifier")
