@@ -30,6 +30,8 @@ from interactive_seg_backend.core import (
 )
 from interactive_seg_backend.main import featurise, apply
 
+from yoeo_interop import deep_feats
+
 Point: TypeAlias = tuple[float, float]
 
 CWD = getcwd()
@@ -250,6 +252,7 @@ class DataModel(object):
                 DEFAULT_TRAIN_CONFIG,
                 False,
                 f"{self.cache_dir}/feature_stack_{idx}.npy",
+                [(deep_feats, False)],
             )
 
     def train_(self) -> None:

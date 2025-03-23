@@ -174,3 +174,4 @@ cython_debug/
 data/*
 .isb_tmp
 yoeo_models/
+yoeo_models/*
