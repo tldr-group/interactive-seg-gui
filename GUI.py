@@ -587,3 +587,9 @@ class MenuBar(tk.Menu):
         else:
             pass
             self.app.save_labels(f)
+
+    def _reload_config(self) -> None:
+        self.app.data_model.reload_cfg()
+
+    def _refeaturise(self) -> None:
+        self.app.data_model.reload_cfg(verbose=False)

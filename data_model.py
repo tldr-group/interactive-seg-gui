@@ -20,21 +20,22 @@ from interactive_seg_backend.configs import (
     TrainingConfig,
     load_training_config_json,
 )
+from interactive_seg_backend.configs.config import KEYS_TO_CLASSES
 from interactive_seg_backend.file_handling import load_featurestack
 from interactive_seg_backend.core import (
     get_training_data,
     shuffle_sample_training_data,
     get_model,
     train,
-    apply,
 )
+from interactive_seg_backend.main import featurise, apply
 
 Point: TypeAlias = tuple[float, float]
 
 CWD = getcwd()
 # DEFAULT_FEAT_CONFIG = FeatureConfig(mean=True, minimum=True, maximum=True)
 # DEFAULT_TRAIN_CONFIG = TrainingConfig(DEFAULT_FEAT_CONFIG, CRF=True, classifier="xgb")
-DEFAULT_TRAIN_CONFIG = load_training_config_json("")
+DEFAULT_TRAIN_CONFIG = load_training_config_json("isb_cfg.json", KEYS_TO_CLASSES)
 
 # set_start_method("spawn", force=True)
 
@@ -283,3 +284,11 @@ class DataModel(object):
             piece.seg_arr = seg + 1
             piece.segmented = True
         self.out_queue.put(Message("SEGMENT", None))
+
+    def reload_cfg(self, verbose: bool = True) -> None:
+        global DEFAULT_TRAIN_CONFIG
+        DEFAULT_TRAIN_CONFIG = load_training_config_json(
+            "isb_cfg.json", KEYS_TO_CLASSES
+        )
+        if verbose:
+            print(DEFAULT_TRAIN_CONFIG)
