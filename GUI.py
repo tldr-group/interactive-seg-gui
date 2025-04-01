@@ -476,6 +476,13 @@ class MenuBar(tk.Menu):
         save_menu = self._make_dropdown(save_name_fn_pairs)
         self.add_cascade(label="Save", menu=save_menu)
 
+        settings_name_fn_pairs: list[tuple[str, Callable]] = [
+            ("Reload config", self._reload_config),
+            ("Re-featurise", self._refeaturise),
+        ]
+        settings_menu = self._make_dropdown(settings_name_fn_pairs)
+        self.add_cascade(label="Settings", menu=settings_menu)
+
     def _make_dropdown(self, name_fn_pair_list: list[tuple[str, Callable]]) -> tk.Menu:
         menu = tk.Menu()
         n_commands: int = len(name_fn_pair_list)

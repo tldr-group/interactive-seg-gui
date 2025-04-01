@@ -14,8 +14,12 @@ from gui_elements.constants import N_PREVIEW_SLICES, Message
 from dataclasses import dataclass
 
 
-from interactive_seg_backend import featurise, Classifier
-from interactive_seg_backend.configs import FeatureConfig, TrainingConfig
+from interactive_seg_backend.classifiers import Classifier
+from interactive_seg_backend.configs import (
+    FeatureConfig,
+    TrainingConfig,
+    load_training_config_json,
+)
 from interactive_seg_backend.file_handling import load_featurestack
 from interactive_seg_backend.core import (
     get_training_data,
@@ -28,14 +32,9 @@ from interactive_seg_backend.core import (
 Point: TypeAlias = tuple[float, float]
 
 CWD = getcwd()
-DEFAULT_FEAT_CONFIG = FeatureConfig(mean=True, minimum=True, maximum=True)
-DEFAULT_TRAIN_CONFIG = TrainingConfig(
-    DEFAULT_FEAT_CONFIG,
-    CRF=True,
-    classifier="xgb",
-    modal_filter=False,
-    modal_filter_k=0,
-)
+# DEFAULT_FEAT_CONFIG = FeatureConfig(mean=True, minimum=True, maximum=True)
+# DEFAULT_TRAIN_CONFIG = TrainingConfig(DEFAULT_FEAT_CONFIG, CRF=True, classifier="xgb")
+DEFAULT_TRAIN_CONFIG = load_training_config_json("")
 
 # set_start_method("spawn", force=True)
 
