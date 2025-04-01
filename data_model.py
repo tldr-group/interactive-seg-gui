@@ -4,10 +4,9 @@ from tifffile import imread
 
 from skimage.draw import ellipse
 from PIL import Image
-from os import getcwd, mkdir, listdir
+from os import getcwd, mkdir
 from os.path import exists
 from shutil import rmtree
-from multiprocessing import Process, set_start_method
 from multiprocessing import Queue as MPQueue
 
 from typing import TypeAlias
@@ -30,7 +29,13 @@ Point: TypeAlias = tuple[float, float]
 
 CWD = getcwd()
 DEFAULT_FEAT_CONFIG = FeatureConfig(mean=True, minimum=True, maximum=True)
-DEFAULT_TRAIN_CONFIG = TrainingConfig(DEFAULT_FEAT_CONFIG, CRF=True)
+DEFAULT_TRAIN_CONFIG = TrainingConfig(
+    DEFAULT_FEAT_CONFIG,
+    CRF=True,
+    classifier="xgb",
+    modal_filter=False,
+    modal_filter_k=0,
+)
 
 # set_start_method("spawn", force=True)
 
@@ -71,6 +76,10 @@ def label_from_points(
     xs, ys = [p[0] for p in points], [p[1] for p in points]
     x0, y0 = int(min(xs)) - o, int(min(ys)) - o
     x1, y1 = int(max(xs)) + o, int(max(ys)) + o
+
+    arr_h, arr_w = seg_arr.shape
+    x0, y0 = max(0, x0), max(0, y0)
+    x1, y1 = min(arr_w - 1, x1), min(arr_h - 1, y1)
 
     h, w = (y1 - y0), (x1 - x0)
     bbox = (x0, y0, x1, y1)

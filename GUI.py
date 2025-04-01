@@ -452,6 +452,7 @@ class MenuBar(tk.Menu):
             ("Remove Image", _foo),
             ("Remove All", self.app.remove_all),
             ("Load labels", self._load_labels),
+            ("Load segmentation", self._load_seg),
         ]
         data_menu = self._make_dropdown(data_name_fn_pairs)
         self.add_cascade(label="Data", menu=data_menu)
@@ -493,6 +494,21 @@ class MenuBar(tk.Menu):
         else:
             self.app.load_image_from_filepaths(file_paths)
 
+    def _load_arr_from_file(
+        self, file_path: str, which: Literal["labels", "seg"]
+    ) -> None:
+        arr = load_labels(file_path)
+        idx = self.app.current_piece_idx.get()
+        piece = self.app.data_model.gallery[idx]
+
+        if which == "labels":
+            piece.labels_arr = arr.astype(np.int16)
+            piece.labelled = True
+        else:
+            piece.seg_arr = arr.astype(np.uint8)
+            piece.segmented = True
+        self.app.needs_updating = True
+
     def _load_labels(self) -> None:
         file_path = open_file_dialog_return_fps(
             title="Load Labels",
@@ -502,12 +518,24 @@ class MenuBar(tk.Menu):
         if file_path == "":
             return
         else:
-            labels = load_labels(file_path)
-            idx = self.app.current_piece_idx.get()
-            piece = self.app.data_model.gallery[idx]
-            piece.labels_arr = labels
-            piece.labelled = True
-            self.app.needs_updating = True
+            self._load_arr_from_file(file_path, "labels")
+            # labels = load_labels(file_path)
+            # idx = self.app.current_piece_idx.get()
+            # piece = self.app.data_model.gallery[idx]
+            # piece.labels_arr = labels.astype(np.int16)
+            # piece.labelled = True
+            # self.app.needs_updating = True
+
+    def _load_seg(self) -> None:
+        file_path = open_file_dialog_return_fps(
+            title="Load Segmentation",
+            file_type_name="Segmentations",
+            file_types_string=".tif .tiff .TIFF",
+        )[0]
+        if file_path == "":
+            return
+        else:
+            self._load_arr_from_file(file_path, "seg")
 
     def _clear_classifier(self) -> None:
         self.app.data_model.classifier = None
