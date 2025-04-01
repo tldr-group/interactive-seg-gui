@@ -42,7 +42,7 @@
   "modal_filter": false,
   "modal_filter_k": 2,
   "autocontext": false,
-  "CRF": true,
+  "CRF": false,
   "CRF_params": {
     "label_confidence": 0.6,
     "sxy_g": [
