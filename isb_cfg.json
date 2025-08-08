@@ -13,51 +13,36 @@
     "minimum": false,
     "maximum": false,
     "median": false,
-    "bilateral": false,
+    "bilateral": true,
     "laplacian": false,
     "structure_tensor_eigvals": false,
     "add_mod_trace_det_hessian": true,
     "membrane_thickness": 1,
     "membrane_patch_size": 15,
-    "add_zero_scale_features": true,
+    "add_zero_scale_features": false,
     "min_sigma": 1.0,
     "max_sigma": 16.0,
-    "sigmas": [
-      1.0,
-      2.0,
-      4.0,
-      8.0,
-      16.0
-    ],
+    "sigmas": [1.0, 2.0, 4.0, 8.0, 16.0],
     "use_gpu": false
   },
   "classifier": "xgb",
   "classifier_params": {
-    "class_weight": "balanced"
+    "class_weight": "balanced",
+    "max_depth": 8
   },
   "balance_classes": true,
   "shuffle_data": true,
   "n_samples": -1,
   "preprocessing": null,
   "modal_filter": false,
-  "modal_filter_k": 2,
+  "modal_filter_k": 0.5,
   "autocontext": false,
-  "CRF": true,
+  "CRF": false,
   "CRF_params": {
     "label_confidence": 0.6,
-    "sxy_g": [
-      3,
-      3
-    ],
-    "sxy_b": [
-      80,
-      80
-    ],
-    "s_rgb": [
-      13,
-      13,
-      13
-    ],
+    "sxy_g": [1, 1],
+    "sxy_b": [30, 30],
+    "s_rgb": [13, 13, 13],
     "compat_g": 10,
     "compat_b": 10,
     "n_infer": 10
@@ -65,5 +50,6 @@
   "HITL": false,
   "HITL_strategy": "wrong",
   "rules": null,
+  "add_dino_features": false,
   "use_gpu": false
 }

@@ -170,7 +170,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-
+.vscode
 data/*
 .isb_tmp
 yoeo_models/
+yoeo_models/*
