@@ -38,6 +38,7 @@ CWD = getcwd()
 # DEFAULT_FEAT_CONFIG = FeatureConfig(mean=True, minimum=True, maximum=True)
 # DEFAULT_TRAIN_CONFIG = TrainingConfig(DEFAULT_FEAT_CONFIG, CRF=True, classifier="xgb")
 DEFAULT_TRAIN_CONFIG = load_training_config_json("isb_cfg.json", KEYS_TO_CLASSES)
+print(DEFAULT_TRAIN_CONFIG)
 
 # set_start_method("spawn", force=True)
 
@@ -246,13 +247,18 @@ class DataModel(object):
         print("Finished featurising")
 
     def _get_features(self, pieces: list[Piece], save_inds: list[int]) -> None:
+        if DEFAULT_TRAIN_CONFIG.add_dino_features:
+            extra_feats = [(deep_feats, False)]
+        else:
+            extra_feats = []
+
         for idx, piece in zip(save_inds, pieces):
             featurise(
                 piece.img_arr,
                 DEFAULT_TRAIN_CONFIG,
                 False,
                 f"{self.cache_dir}/feature_stack_{idx}.npy",
-                [(deep_feats, False)],
+                extra_feats,
             )
 
     def train_(self) -> None:
@@ -282,7 +288,11 @@ class DataModel(object):
             path = f"{self.cache_dir}/feature_stack_{i}.npy"
             stack = load_featurestack(path)
             seg, _ = apply(
-                self.classifier, stack, DEFAULT_TRAIN_CONFIG, image=piece.img_arr
+                self.classifier,
+                stack,
+                DEFAULT_TRAIN_CONFIG,
+                image=piece.img_arr,
+                labels=piece.labels_arr,
             )
             piece.seg_arr = seg + 1
             piece.segmented = True

@@ -66,9 +66,7 @@ def open_file_dialog_return_fp(
     file_types_string: str = ".pkl",
 ) -> str:
     """Open file dialog and select n files, returning their file paths then loading them."""
-    filepath: str = fd.askopenfilename(
-        filetypes=[(f"{file_type_name} files:", file_types_string)], title=title
-    )
+    filepath: str = fd.askopenfilename(filetypes=[(f"{file_type_name} files:", file_types_string)], title=title)
     return filepath
 
 
@@ -169,9 +167,7 @@ class App(ttk.Frame):
 
         erase_text = ttk.Label(frame, text="Erase:")
         erase_text.grid(row=2)
-        erase = ttk.Checkbutton(
-            frame, variable=self.canvas.erasing, command=self.on_erase_toggle
-        )
+        erase = ttk.Checkbutton(frame, variable=self.canvas.erasing, command=self.on_erase_toggle)
         erase.grid(row=3, pady=(0, PAD))
 
         width_text = ttk.Label(frame, text="Width:")
@@ -204,9 +200,7 @@ class App(ttk.Frame):
 
     def _init_bottombar(self, n_images: int = 0) -> None:
         frame = ttk.Frame(self, relief="groove", borderwidth=2)
-        frame.grid(
-            row=BOTTOM_BAR_IDX, column=0, columnspan=CANVAS_W_GRID + 1, sticky="ew"
-        )
+        frame.grid(row=BOTTOM_BAR_IDX, column=0, columnspan=CANVAS_W_GRID + 1, sticky="ew")
 
         opacity_text = ttk.Label(frame, text="  Opacity:")
         opacity_text.grid(column=0)
@@ -356,9 +350,7 @@ class App(ttk.Frame):
             self.seg_overlay_alpha.set(val)
         self.needs_updating = True
 
-    def get_img_from_seg(
-        self, train_result: np.ndarray, cmap: ListedColormap, alpha_mask: np.ndarray
-    ) -> Image.Image:
+    def get_img_from_seg(self, train_result: np.ndarray, cmap: ListedColormap, alpha_mask: np.ndarray) -> Image.Image:
         """Given a segmentation (i.e H,W arr where entries are ints), map this using the colourmaps to an image (with set opacity)."""
         cmapped = cmap(train_result)
         cmapped[:, :, 3] = alpha_mask
@@ -378,23 +370,14 @@ class App(ttk.Frame):
 
         if current_piece.segmented is True:
             seg_data = current_piece.seg_arr
-            alpha_mask = (
-                np.ones_like(seg_data, dtype=np.float16) * self.seg_overlay_alpha.get()
-            )
-            overlay_seg_img = self.get_img_from_seg(
-                seg_data, cmap=self.cmap, alpha_mask=alpha_mask
-            )
+            alpha_mask = np.ones_like(seg_data, dtype=np.float16) * self.seg_overlay_alpha.get()
+            overlay_seg_img = self.get_img_from_seg(seg_data, cmap=self.cmap, alpha_mask=alpha_mask)
             new_img.paste(overlay_seg_img, (0, 0), overlay_seg_img)
 
         if current_piece.labelled is True:
             label_data = current_piece.labels_arr
-            alpha_mask = (
-                np.where(label_data > 0, 1, 0).astype(np.float16)
-                * self.label_overlay_alpha
-            )
-            overlay_label_img = self.get_img_from_seg(
-                label_data, cmap=self.cmap, alpha_mask=alpha_mask
-            )
+            alpha_mask = np.where(label_data > 0, 1, 0).astype(np.float16) * self.label_overlay_alpha
+            overlay_label_img = self.get_img_from_seg(label_data, cmap=self.cmap, alpha_mask=alpha_mask)
             new_img.paste(overlay_label_img, (0, 0), overlay_label_img)
 
         self.canvas.set_current_image(new_img)
@@ -501,18 +484,18 @@ class MenuBar(tk.Menu):
         else:
             self.app.load_image_from_filepaths(file_paths)
 
-    def _load_arr_from_file(
-        self, file_path: str, which: Literal["labels", "seg"]
-    ) -> None:
+    def _load_arr_from_file(self, file_path: str, which: Literal["labels", "seg"]) -> None:
         arr = load_labels(file_path)
         idx = self.app.current_piece_idx.get()
         piece = self.app.data_model.gallery[idx]
+
+        arr = arr[: piece.h, : piece.w]
 
         if which == "labels":
             piece.labels_arr = arr.astype(np.int16)
             piece.labelled = True
         else:
-            piece.seg_arr = arr.astype(np.uint8)
+            piece.seg_arr = arr.astype(np.uint8) + 1
             piece.segmented = True
         self.app.needs_updating = True
 
@@ -593,3 +576,4 @@ class MenuBar(tk.Menu):
 
     def _refeaturise(self) -> None:
         self.app.data_model.reload_cfg(verbose=False)
+        self.app.data_model.get_features(0)
