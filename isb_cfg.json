@@ -37,7 +37,7 @@
   "modal_filter": false,
   "modal_filter_k": 0.5,
   "autocontext": false,
-  "CRF": false,
+  "CRF": true,
   "CRF_params": {
     "label_confidence": 0.6,
     "sxy_g": [1, 1],
@@ -50,6 +50,6 @@
   "HITL": false,
   "HITL_strategy": "wrong",
   "rules": null,
-  "add_dino_features": false,
+  "add_dino_features": true,
   "use_gpu": false
 }

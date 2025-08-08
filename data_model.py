@@ -30,7 +30,8 @@ from interactive_seg_backend.core import (
 )
 from interactive_seg_backend.main import featurise, apply
 
-from yoeo_interop import deep_feats
+from deep_feat_interop import deep_feats, DEEP_FEATS_AVAILABLE
+
 
 Point: TypeAlias = tuple[float, float]
 
@@ -151,9 +152,7 @@ def train_from_paths(feature_paths: list[str], labels: list[np.ndarray]) -> Clas
     tc = DEFAULT_TRAIN_CONFIG
     print(feature_paths)
     fit, target = get_training_data(feature_paths, labels)
-    fit, target = shuffle_sample_training_data(
-        fit, target, tc.shuffle_data, tc.n_samples
-    )
+    fit, target = shuffle_sample_training_data(fit, target, tc.shuffle_data, tc.n_samples)
     classifier = get_model(tc.classifier, tc.classifier_params)
     classifier = train(classifier, fit, target, sample_weight=None)
     return classifier
@@ -204,9 +203,7 @@ class DataModel(object):
     def add_volume(self, arr: np.ndarray, add_to_gallery: bool = True) -> Piece:
         n_slices = arr.shape[0]
         n_preview = min(N_PREVIEW_SLICES, n_slices)
-        slices = np.linspace(
-            0, n_slices - 1, num=n_preview, endpoint=True, dtype=np.uint16
-        )
+        slices = np.linspace(0, n_slices - 1, num=n_preview, endpoint=True, dtype=np.uint16)
         for idx in slices:
             slice_arr = arr[idx]
             pil_image = Image.fromarray(slice_arr).convert("RGBA")
@@ -223,9 +220,7 @@ class DataModel(object):
         self, points: list[Point], piece_idx: int, label_val: int, brush_width: int
     ) -> None:
         piece = self.gallery[piece_idx]
-        label = label_from_points(
-            points, piece.labels_arr, label_val, brush_width, True
-        )
+        label = label_from_points(points, piece.labels_arr, label_val, brush_width, True)
         piece.labels.append(label)
         piece.labelled = True
 
@@ -247,7 +242,7 @@ class DataModel(object):
         print("Finished featurising")
 
     def _get_features(self, pieces: list[Piece], save_inds: list[int]) -> None:
-        if DEFAULT_TRAIN_CONFIG.add_dino_features:
+        if DEFAULT_TRAIN_CONFIG.add_dino_features and DEEP_FEATS_AVAILABLE:
             extra_feats = [(deep_feats, False)]
         else:
             extra_feats = []
@@ -300,8 +295,6 @@ class DataModel(object):
 
     def reload_cfg(self, verbose: bool = True) -> None:
         global DEFAULT_TRAIN_CONFIG
-        DEFAULT_TRAIN_CONFIG = load_training_config_json(
-            "isb_cfg.json", KEYS_TO_CLASSES
-        )
+        DEFAULT_TRAIN_CONFIG = load_training_config_json("isb_cfg.json", KEYS_TO_CLASSES)
         if verbose:
             print(DEFAULT_TRAIN_CONFIG)

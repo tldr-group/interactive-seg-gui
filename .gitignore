@@ -175,3 +175,4 @@ data/*
 .isb_tmp
 yoeo_models/
 yoeo_models/*
+trained_models/*
