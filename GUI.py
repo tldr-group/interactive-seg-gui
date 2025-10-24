@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog as fd
 
+from matplotlib import pyplot as plt
 import numpy as np
 from matplotlib.colors import ListedColormap
 from PIL import Image
@@ -19,6 +20,8 @@ from gui_elements.constants import (
     BOTTOM_BAR_IDX,
 )
 from gui_elements.interactive_canvas import InteractiveCanvas
+from gui_elements.umap_widget import UMAP_window
+from extensions.umap_ import plot_embedding_get_img
 from data_model import DataModel, Piece, Message, Point
 
 from interactive_seg_backend.file_handling import (
@@ -198,6 +201,9 @@ class App(ttk.Frame):
         clear_btn = ttk.Button(frame, text="Clear", width=6, command=self.clear)
         clear_btn.grid(row=7, pady=(0, PAD))
 
+        umap_btn = ttk.Button(frame, text="UMAP", width=6, command=self.start_umap_labelling)
+        umap_btn.grid(row=8, pady=(0, PAD))
+
     def _init_bottombar(self, n_images: int = 0) -> None:
         frame = ttk.Frame(self, relief="groove", borderwidth=2)
         frame.grid(row=BOTTOM_BAR_IDX, column=0, columnspan=CANVAS_W_GRID + 1, sticky="ew")
@@ -320,6 +326,25 @@ class App(ttk.Frame):
         self.canvas.destroy()
         self._init_canv()
         # self.canvas.__init__(self, self.data_model.out_queue)
+
+    def start_umap_labelling(self) -> None:
+        idx = int(self.current_piece_idx.get())
+        piece = self.data_model.gallery[idx]
+
+        img_arr = np.array(piece.img.convert("L"))
+        labels = piece.labels_arr
+
+        embedding = self.data_model.do_umap(idx)
+        n_classes = self.data_model.gallery[idx].labels_arr.max()
+
+        img = plot_embedding_get_img(embedding, img_arr, labels, COLOURS)
+
+        queue = self.data_model.out_queue
+        self.umap_window = UMAP_window(self, n_classes, queue)
+        self.umap_window.canvas.set_current_image(img, True)
+
+        # plt.scatter(embedding[:, 0], embedding[:, 1], s=1)
+        # plt.savefig("umap_embedding.png")
 
     # def remove_image(self) -> None:
     #     self.ch

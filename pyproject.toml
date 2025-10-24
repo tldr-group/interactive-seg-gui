@@ -15,4 +15,22 @@ classifiers = [
 dependencies = [
   "matplotlib>=3.10.0",
   "python-dotenv>=1.1.0",
+  "pynndescent>=0.5.13",
+  "umap-learn[tbb]>=0.5.8",
+  "cuml-cu12",
   ]
+
+[tool.setuptools]
+packages = ["extensions", "gui_elements"]
+
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true          # everything else comes from PyPI
+
+[[tool.uv.index]]
+name = "cuml-cu12"
+url = "https://pypi.nvidia.com"
+explicit = true         # only packages explicitly pinned to this index
+

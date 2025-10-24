@@ -31,6 +31,7 @@ from interactive_seg_backend.core import (
 )
 from interactive_seg_backend.main import featurise, apply
 
+from extensions.umap_ import get_umap_embedding
 from deep_feat_interop import deep_feats, DEEP_FEATS_AVAILABLE
 
 
@@ -234,6 +235,20 @@ class DataModel(object):
 
         if len(piece.labels) == 0:
             piece.labelled = False
+
+    # %% UMAP
+    def do_umap(self, idx: int) -> np.ndarray:
+        features = load_featurestack(
+            f"{self.cache_dir}/feature_stack_{idx}.npy",
+        )
+        labels = self.gallery[idx].labels_arr
+        embedding = get_umap_embedding(features, labels)
+        return embedding
+
+        # want: dim reduce data (to 2 dims?)
+        # also want to do supervised dim reduction with existing labels
+        # also want to be able to do clustering i.e hdbscan for assignment?
+        # and / or nearest neighbour in feature space assignment
 
     # %% CLASSIFIER INTEROP
     def get_features(self, prev_n: int) -> None:
