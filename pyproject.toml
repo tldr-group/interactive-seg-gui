@@ -1,0 +1,18 @@
+[project]
+name = "interactive-seg-gui"
+version = "0.0.1"
+authors = [
+  { name="Ronan Docherty", email="ronan.docherty18@imperial.ac.uk"},
+]
+description = "ViT feature upsampling via CNNs"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  "matplotlib>=3.10.0",
+  "python-dotenv>=1.1.0",
+  ]
