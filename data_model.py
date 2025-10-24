@@ -12,6 +12,7 @@ from multiprocessing import Queue as MPQueue
 from typing import TypeAlias
 from gui_elements.constants import N_PREVIEW_SLICES, Message
 from dataclasses import dataclass
+from dotenv import dotenv_values
 
 
 from interactive_seg_backend.classifiers import Classifier
@@ -38,7 +39,8 @@ Point: TypeAlias = tuple[float, float]
 CWD = getcwd()
 # DEFAULT_FEAT_CONFIG = FeatureConfig(mean=True, minimum=True, maximum=True)
 # DEFAULT_TRAIN_CONFIG = TrainingConfig(DEFAULT_FEAT_CONFIG, CRF=True, classifier="xgb")
-DEFAULT_TRAIN_CONFIG = load_training_config_json("isb_cfg.json", KEYS_TO_CLASSES)
+CFG_PATH = dotenv_values()["CFG_PATH"]
+DEFAULT_TRAIN_CONFIG = load_training_config_json(CFG_PATH, KEYS_TO_CLASSES)
 print(DEFAULT_TRAIN_CONFIG)
 
 # set_start_method("spawn", force=True)
@@ -295,6 +297,6 @@ class DataModel(object):
 
     def reload_cfg(self, verbose: bool = True) -> None:
         global DEFAULT_TRAIN_CONFIG
-        DEFAULT_TRAIN_CONFIG = load_training_config_json("isb_cfg.json", KEYS_TO_CLASSES)
+        DEFAULT_TRAIN_CONFIG = load_training_config_json(CFG_PATH, KEYS_TO_CLASSES)
         if verbose:
             print(DEFAULT_TRAIN_CONFIG)
