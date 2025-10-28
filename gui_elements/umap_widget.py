@@ -52,3 +52,51 @@ class UMAPCanvas(InteractiveCanvas):
 
     def __init__(self, parent: tk.Widget, out_queue: Queue[Message]):
         super().__init__(parent, out_queue)
+
+        # %% DRAWING
+
+    def place_poly_point(self, x: int, y: int, frac_x: float, frac_y: float, r: int) -> None:
+        """Draw oval at click. Draw line from prev point to new point. Append fractional coords of new point to list."""
+        self.current_label_frac_points.append((frac_x, frac_y))
+
+        canvas_coords = [self._frac_to_canvas_coords(px, py) for px, py in self.current_label_frac_points]
+
+        self.canvas.delete("in_progress")
+        self.canvas.create_polygon(
+            canvas_coords, fill="", width=2, tags="in_progress", outline=self.fill_colour, smooth=True
+        )
+        return None
+
+    def _mouse_motion_draw_cursor(self, x: int, y: int, r: int):
+        scaled_w = r * self.imscale
+        self.canvas.delete("animated")
+        self.canvas.create_oval(
+            x - scaled_w,
+            y - scaled_w,
+            x + scaled_w,
+            y + scaled_w,
+            outline=self.fill_colour,
+            fill="",
+            width=2,
+            tags="animated",
+        )
+
+    def _mouse_motion_poly(self, x: int, y: int) -> None:
+        self.canvas.delete("animated")
+        prev_point_frac_coords = self.current_label_frac_points[-1]
+        x0, y0 = self._frac_to_canvas_coords(*prev_point_frac_coords)
+        # self.canvas.create_line(x0, y0, x, y, fill=self.fill_colour, width=2.2, tags="animated")
+
+    def finish_poly(self, _event: tk.Event) -> None:
+        """Submit current label to data_model, delete in progress gui stuff."""
+        # self.canvas.delete("in_progress")
+        # self.canvas.delete("animated")
+
+        # print(self.current_label_frac_points)
+
+        msg = Message("UMAP_POLY_FRAC_POINTS", self.current_label_frac_points.copy())
+        self.queue.put(msg)
+
+        print("mouseup")
+
+        self.current_label_frac_points = []

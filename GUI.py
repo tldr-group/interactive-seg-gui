@@ -23,6 +23,7 @@ from gui_elements.interactive_canvas import InteractiveCanvas
 from gui_elements.umap_widget import UMAP_window
 from extensions.umap_ import plot_embedding_get_img
 from data_model import DataModel, Piece, Message, Point
+from extensions.umap_ import embedding_polygon_mask
 
 from interactive_seg_backend.file_handling import (
     save_segmentation,
@@ -424,6 +425,18 @@ class App(ttk.Frame):
                 self.clear()
             case "SEGMENT":
                 self.needs_updating = True
+            case "UMAP_POLY_FRAC_POINTS":
+                current_piece = self.get_current_piece()
+
+                embedding = current_piece.umap_embedding
+                if embedding is None:
+                    return
+
+                frac_points = message.data
+                # assert isinstance(frac_points, list[tuple[float, float]])
+                mask = embedding_polygon_mask(embedding, current_piece.img.size, frac_points)
+                plt.imsave("mask_debug.png", mask.astype(np.uint8) * 255)
+
             case _:
                 raise Exception(f"Undefined message type {header}")
 

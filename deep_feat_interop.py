@@ -26,5 +26,4 @@ def deep_feats(img: np.ndarray, feature_cfg: Any):
         torch_feats = upsampler.forward(img)
         torch_feats = torch_feats.squeeze(0).permute((1, 2, 0))
         hr_feats = torch_feats.cpu().numpy()
-    print(hr_feats.shape)
     return hr_feats

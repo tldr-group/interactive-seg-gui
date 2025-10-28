@@ -123,6 +123,8 @@ class Piece:
     labelled: bool = False
     segmented: bool = False
 
+    umap_embedding: np.ndarray | None = None
+
     def __post_init__(self) -> None:
         """Set these here because dataclasses don't like mutable objects being assigned in __init__."""
         shape: tuple[int, ...] = self.img_arr.shape
@@ -237,18 +239,18 @@ class DataModel(object):
             piece.labelled = False
 
     # %% UMAP
-    def do_umap(self, idx: int) -> np.ndarray:
+    def do_umap(self, idx: int, cache: bool = True) -> np.ndarray:
         features = load_featurestack(
             f"{self.cache_dir}/feature_stack_{idx}.npy",
         )
+        print(features.shape)
+        features = features[:, :, -32:]
         labels = self.gallery[idx].labels_arr
         embedding = get_umap_embedding(features, labels)
+        if cache:
+            current_piece = self.gallery[idx]
+            current_piece.umap_embedding = embedding
         return embedding
-
-        # want: dim reduce data (to 2 dims?)
-        # also want to do supervised dim reduction with existing labels
-        # also want to be able to do clustering i.e hdbscan for assignment?
-        # and / or nearest neighbour in feature space assignment
 
     # %% CLASSIFIER INTEROP
     def get_features(self, prev_n: int) -> None:

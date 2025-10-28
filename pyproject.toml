@@ -18,6 +18,7 @@ dependencies = [
   "pynndescent>=0.5.13",
   "umap-learn[tbb]>=0.5.8",
   "cuml-cu12",
+  "imagecodecs",
   ]
 
 [tool.setuptools]

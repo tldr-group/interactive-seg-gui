@@ -13,4 +13,6 @@ if __name__ == "__main__":
     app = App(root, model, initial_img_paths=filenames)
     app.grid()
 
+    # app.load_image_from_filepaths(("data/natural/bulldog_518.png",))
+
     root.mainloop()
