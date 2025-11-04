@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from skimage.transform import resize
 from matplotlib.path import Path
 
+
+from scipy.spatial import KDTree
 from sklearn.decomposition import PCA
 from umap import UMAP
 from cuml.manifold import UMAP as GPUMAP
@@ -19,6 +21,13 @@ from time import time
 N_ALLOWED_CPUS = cpu_count() - 2
 NormType: TypeAlias = Literal["l1", "l2", "std", None]
 UMAP_DOWNSAMPLE: int = 1
+
+
+def count_neighbors_kdtree(points: np.ndarray, r: float) -> np.ndarray:
+    tree = KDTree(points)
+    counts = tree.query_ball_point(points, r)
+    # counts is a list of lists; subtract 1 to remove self
+    return np.array([len(c) - 1 for c in counts])
 
 
 def plot_embedding_get_img(
@@ -38,39 +47,55 @@ def plot_embedding_get_img(
     label_mask_flat = label_mask.flatten()
 
     image_down = downsample_array(image, downsample_factor, np.mean)
-    intensity = image_down.flatten()
+    # intensity = image_down.flatten()
+
+    intensity = count_neighbors_kdtree(embedding_flat, r=0.1)
 
     fig = plt.figure(frameon=False)
     fig.set_size_inches(8, 8)
     plt.axis("off")
     ax = plt.gca()
 
+    embedding_flat = embedding_flat[intensity > 20, :]
+
     # Plot unlabelled points (label==0) with intensity
-    unlabelled_idx = label_mask_flat == 0
+    # unlabelled_idx = label_mask_flat == 0
+    # plt.scatter(
+    #     embedding_flat[unlabelled_idx, 0],
+    #     embedding_flat[unlabelled_idx, 1],
+    #     s=1,
+    #     c=intensity[unlabelled_idx],
+    #     cmap="viridis",
+    #     alpha=1,
+    #     label="Unlabelled",
+    # )
+
+    order = np.argsort(intensity[intensity > 20])
+
     plt.scatter(
-        embedding_flat[unlabelled_idx, 0],
-        embedding_flat[unlabelled_idx, 1],
+        embedding_flat[:, 0][order],
+        embedding_flat[:, 1][order],
         s=1,
-        c=intensity[unlabelled_idx],
+        c=intensity[intensity > 20][order],
         cmap="viridis",
         alpha=1,
         label="Unlabelled",
     )
 
-    # Plot labelled points by class colour
-    for class_id in range(1, len(class_colour)):
-        idx = label_mask_flat == class_id
-        if np.any(idx):
-            plt.scatter(
-                embedding_flat[idx, 0],
-                embedding_flat[idx, 1],
-                marker="v",
-                s=3,
-                c=class_colour[class_id],
-                label=f"Class {class_id}",
-                edgecolors="white",
-                linewidths=0.1,
-            )
+    # # Plot labelled points by class colour
+    # for class_id in range(1, len(class_colour)):
+    #     idx = label_mask_flat == class_id
+    #     if np.any(idx):
+    #         plt.scatter(
+    #             embedding_flat[idx, 0],
+    #             embedding_flat[idx, 1],
+    #             marker="v",
+    #             s=1,
+    #             c=class_colour[class_id],
+    #             label=f"Class {class_id}",
+    #             edgecolors="white",
+    #             linewidths=0.1,
+    #         )
 
     ax.xaxis.set_major_locator(plt.NullLocator())
     ax.yaxis.set_major_locator(plt.NullLocator())
@@ -213,7 +238,7 @@ def get_umap_embedding(
     n_components: int = 2,
     metric: str = "euclidean",
     downsample_factor: int = UMAP_DOWNSAMPLE,
-    grid_sample_dist: int = 8,
+    grid_sample_dist: int = 4,
     norm: NormType = "l2",
     pca_dim: int = -1,
     use_gpu: bool = True,
@@ -240,103 +265,12 @@ def get_umap_embedding(
     return embedding_image
 
 
-# def get_umap_embedding(
-#     features: np.ndarray,
-#     labelled_mask: np.ndarray | None = None,
-#     n_neighbors: int = 20,
-#     min_dist: float = 0.05,
-#     n_components: int = 2,
-#     metric: str = "euclidean",
-#     downsample_factor: int = UMAP_DOWNSAMPLE,
-#     grid_sample_dist: int = 1,
-#     norm: NormType = "std",
-#     pca_dim: int = 16,
-#     use_gpu: bool = True,
-#     cast_to: np.dtype = np.float16,
-# ) -> np.ndarray:
-#     start = time()
-#     # Downsample features
-#     if downsample_factor > 1:
-#         downsampled_features = downsample_array(features, downsample_factor, np.mean)
-#     else:
-#         downsampled_features = features
-
-#     if grid_sample_dist > 1:
-#         downsampled_features = grid_sample_array(downsampled_features, grid_sample_dist)
-
-#     downsampled_features = normalize_array(downsampled_features, norm)
-#     downsampled_features = downsampled_features.astype(cast_to)
-
-#     h, w, c = downsampled_features.shape
-#     flat_features = downsampled_features.reshape((h * w, c))
-#     flat_mask: np.ndarray | None = None
-#     if labelled_mask is not None:
-#         if downsample_factor > 1:
-#             downsampled_mask = downsample_array(labelled_mask, downsample_factor, np.max)
-#         else:
-#             downsampled_mask = labelled_mask
-
-#         if grid_sample_dist > 1:
-#             train_mask = grid_sample_array(downsampled_mask, grid_sample_dist)
-#         else:
-#             train_mask
-
-#         flat_mask = downsampled_mask.reshape((h * w,))
-#         flat_mask[flat_mask == 0] = -1  # UMAP expects unlabelled data to be -1
-
-#     if pca_dim > 0:
-#         flat_features = pca_reduce(flat_features, pca_dim, n_samples=40000)
-
-#     # Perform UMAP embedding
-#     if use_gpu:
-#         umap_model = GPUMAP(
-#             n_neighbors=n_neighbors,
-#             min_dist=min_dist,
-#             n_components=n_components,
-#             metric=metric,
-#             n_jobs=N_ALLOWED_CPUS,
-#         )
-#         embedding = umap_model.fit_transform(flat_features, y=flat_mask)
-#     else:
-#         umap_model = UMAP(
-#             n_neighbors=n_neighbors, min_dist=min_dist, n_components=n_components, metric=metric, n_jobs=N_ALLOWED_CPUS
-#         )
-#         embedding = umap_model.fit_transform(flat_features, y=flat_mask)
-#         embedding = cast(np.ndarray, embedding)
-
-#     # Reshape embedding back to image grid
-#     embedding_image = embedding.reshape((h, w, n_components))
-#     end = time()
-#     print(f"UMAP embedding took {end - start:.2f} seconds (downsample={downsample_factor}).")
-#     return embedding_image
-
-
 def embedding_polygon_mask(
     embeddings: np.ndarray,
     image_shape: tuple[int, int],
     frac_points: list[tuple[float, float]],
     upsample_factor: int = UMAP_DOWNSAMPLE,
 ) -> np.ndarray:
-    """
-    Create a binary mask of shape (H*upsample_factor, W*upsample_factor)
-    indicating which pixels' embeddings lie inside a polygon selection in fractional coordinates.
-
-    Parameters
-    ----------
-    embeddings : np.ndarray
-        Array of shape (N, 2) giving x, y embedding coordinates, with N = H * W.
-    image_shape : tuple[int, int]
-        Shape of the original image (H, W).
-    frac_points : list[tuple[float, float]]
-        Polygon vertices in fractional coordinates (0–1 range relative to embedding bounding box).
-    upsample_factor : int, optional
-        Upsampling factor for the final binary mask. Default is 1 (no upsampling).
-
-    Returns
-    -------
-    np.ndarray
-        Binary mask of shape (H*upsample_factor, W*upsample_factor) with dtype bool.
-    """
     if len(embeddings.shape) == 3:
         _, _, c = embeddings.shape
         embeddings = embeddings.reshape(-1, c)
@@ -349,11 +283,14 @@ def embedding_polygon_mask(
         H, W = h, w
     # assert embeddings.shape[0] == H * W, "embeddings must correspond to flattened image pixels"
 
+    intensity = count_neighbors_kdtree(embeddings, r=0.10)  # was 0.05
+    embedding_filtered = embeddings[intensity > 20, :]
+
     # Normalize embedding coordinates
-    min_xy = embeddings.min(axis=0)
-    max_xy = embeddings.max(axis=0)
-    print(min_xy, max_xy)
-    print(np.amin(embeddings[:, 0]), np.amax(embeddings[:, 0]))
+    min_xy = embedding_filtered.min(axis=0)
+    max_xy = embedding_filtered.max(axis=0)
+    # print(min_xy, max_xy)
+    # print(np.amin(embeddings[:, 0]), np.amax(embeddings[:, 0]))
     norm_embeddings = (embeddings - min_xy) / (max_xy - min_xy)
 
     # Build polygon path (in normalized / fractional space)

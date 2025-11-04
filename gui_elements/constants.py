@@ -45,7 +45,18 @@ BOTTOM_BAR_IDX = MENU_BAR_ROW + CANVAS_H_GRID + 1
 MIN_TIME: float = 0.07
 N_PREVIEW_SLICES: int = 10
 
-MessageTypes = Literal["NOTIF", "TRAIN", "SEGMENT", "POINTS", "UNDO", "CLEAR", "CLASSIFIER", "UMAP_POLY_FRAC_POINTS"]
+MessageTypes = Literal[
+    "NOTIF",
+    "TRAIN",
+    "SEGMENT",
+    "POINTS",
+    "UNDO",
+    "CLEAR",
+    "CLASSIFIER",
+    "UMAP_POLY_FRAC_POINTS",
+    "UMAP_CONFIRM_LABEL",
+    "UMAP_CLEAR_LABEL",
+]
 ProgressTypes = Literal["start", "stop", "progress", "N/A"]
 
 

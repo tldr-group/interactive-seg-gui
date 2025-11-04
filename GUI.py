@@ -104,6 +104,8 @@ class App(ttk.Frame):
         self.seg_overlay_alpha = tk.DoubleVar(self, value=1.0)
         self.label_overlay_alpha: float = 0.7
 
+        self.interactive_mask: np.ndarray | None = None
+
         self.cmap = ListedColormap(COLOURS)
 
         self.root.option_add("*tearOff", False)
@@ -287,6 +289,8 @@ class App(ttk.Frame):
         if val is None:
             val = self.canvas.label_val.get()
         self.canvas.set_label_class(val)
+        if self.interactive_mask is not None:
+            self.needs_updating = True
         return None
 
     def save_seg(self, path: str) -> None:
@@ -336,16 +340,12 @@ class App(ttk.Frame):
         labels = piece.labels_arr
 
         embedding = self.data_model.do_umap(idx)
-        n_classes = self.data_model.gallery[idx].labels_arr.max()
 
         img = plot_embedding_get_img(embedding, img_arr, labels, COLOURS)
 
         queue = self.data_model.out_queue
-        self.umap_window = UMAP_window(self, n_classes, queue)
+        self.umap_window = UMAP_window(self, self.canvas.label_val, self.set_label_val, queue)
         self.umap_window.canvas.set_current_image(img, True)
-
-        # plt.scatter(embedding[:, 0], embedding[:, 1], s=1)
-        # plt.savefig("umap_embedding.png")
 
     # def remove_image(self) -> None:
     #     self.ch
@@ -406,6 +406,13 @@ class App(ttk.Frame):
             overlay_label_img = self.get_img_from_seg(label_data, cmap=self.cmap, alpha_mask=alpha_mask)
             new_img.paste(overlay_label_img, (0, 0), overlay_label_img)
 
+        if self.interactive_mask is not None:
+            mask_data = self.interactive_mask
+            alpha_mask = (mask_data > 0).astype(np.float16) * 0.75
+            mapped = mask_data.astype(np.int8) * self.canvas.label_val.get()
+            overlay_mask_img = self.get_img_from_seg(mapped, cmap=self.cmap, alpha_mask=alpha_mask)
+            new_img.paste(overlay_mask_img, (0, 0), overlay_mask_img)
+
         self.canvas.set_current_image(new_img)
 
     def handle_message(self, message: Message) -> None:
@@ -433,10 +440,17 @@ class App(ttk.Frame):
                     return
 
                 frac_points = message.data
-                # assert isinstance(frac_points, list[tuple[float, float]])
                 mask = embedding_polygon_mask(embedding, current_piece.img.size, frac_points)
-                plt.imsave("mask_debug.png", mask.astype(np.uint8) * 255)
-
+                self.interactive_mask = mask
+                self.needs_updating = True
+            case "UMAP_CONFIRM_LABEL":
+                current_piece_idx = int(self.current_piece_idx.get())
+                current_label_val = int(self.canvas.label_val.get())
+                self.data_model.add_umap_label(self.interactive_mask, current_piece_idx, current_label_val)
+                self.interactive_mask = None
+            case "UMAP_CLEAR_LABEL":
+                self.interactive_mask = None
+                self.needs_updating = True
             case _:
                 raise Exception(f"Undefined message type {header}")
 

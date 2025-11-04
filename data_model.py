@@ -252,6 +252,11 @@ class DataModel(object):
             current_piece.umap_embedding = embedding
         return embedding
 
+    def add_umap_label(self, mask: np.ndarray, piece_idx: int, label_val: int) -> None:
+        piece = self.gallery[piece_idx]
+        piece.labels_arr[mask > 0] = label_val
+        piece.labelled = True
+
     # %% CLASSIFIER INTEROP
     def get_features(self, prev_n: int) -> None:
         start_idx = max(0, prev_n - 1)
