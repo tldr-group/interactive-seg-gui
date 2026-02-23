@@ -17,11 +17,8 @@ from dotenv import dotenv_values
 
 from interactive_seg_backend.classifiers import Classifier
 from interactive_seg_backend.configs import (
-    FeatureConfig,
-    TrainingConfig,
     load_training_config_json,
 )
-from interactive_seg_backend.configs.config import KEYS_TO_CLASSES
 from interactive_seg_backend.file_handling import load_featurestack
 from interactive_seg_backend.core import (
     get_training_data,
@@ -40,7 +37,7 @@ CWD = getcwd()
 # DEFAULT_FEAT_CONFIG = FeatureConfig(mean=True, minimum=True, maximum=True)
 # DEFAULT_TRAIN_CONFIG = TrainingConfig(DEFAULT_FEAT_CONFIG, CRF=True, classifier="xgb")
 CFG_PATH = dotenv_values()["CFG_PATH"]
-DEFAULT_TRAIN_CONFIG = load_training_config_json(CFG_PATH, KEYS_TO_CLASSES)
+DEFAULT_TRAIN_CONFIG = load_training_config_json(CFG_PATH)
 print(DEFAULT_TRAIN_CONFIG)
 
 # set_start_method("spawn", force=True)
@@ -192,7 +189,7 @@ class DataModel(object):
             else:
                 pil_image = Image.fromarray(np_array).convert("RGBA")
         else:
-            pil_image = Image.open(filepath)
+            pil_image = Image.open(filepath).convert("RGB")
             np_array = np.array(pil_image)
             pil_image = pil_image.convert("RGBA")
 
@@ -253,7 +250,6 @@ class DataModel(object):
             featurise(
                 piece.img_arr,
                 DEFAULT_TRAIN_CONFIG,
-                False,
                 f"{self.cache_dir}/feature_stack_{idx}.npy",
                 extra_feats,
             )

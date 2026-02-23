@@ -35,7 +35,7 @@
   "n_samples": -1,
   "preprocessing": null,
   "modal_filter": false,
-  "modal_filter_k": 0.5,
+  "modal_filter_k": 1,
   "autocontext": false,
   "CRF": true,
   "CRF_params": {
