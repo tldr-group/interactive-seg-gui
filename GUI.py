@@ -1,6 +1,7 @@
 # %% IMPORTS
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox as mb
 from tkinter import filedialog as fd
 
 import numpy as np
@@ -284,12 +285,18 @@ class App(ttk.Frame):
         return None
 
     def save_seg(self, path: str) -> None:
-        piece = self.data_model.gallery[self.current_piece_idx.get()]
-        save_segmentation(piece.seg_arr, path)
+        try:
+            piece = self.data_model.gallery[self.current_piece_idx.get()]
+            save_segmentation(piece.seg_arr, path)
+        except (IndexError, AttributeError):
+            mb.showwarning(title="No image available!")
 
     def save_labels(self, path: str) -> None:
-        piece = self.data_model.gallery[self.current_piece_idx.get()]
-        save_labels(piece.labels_arr, path)
+        try:
+            piece = self.data_model.gallery[self.current_piece_idx.get()]
+            save_labels(piece.labels_arr, path)
+        except (IndexError, AttributeError):
+            mb.showwarning(title="No image available!")
 
     # %% BUTTONS
     def load_image_from_filepaths(self, paths: tuple[str, ...]) -> None:
@@ -319,7 +326,6 @@ class App(ttk.Frame):
         self.canvas.current_img_hw = (0, 0)
         self.canvas.destroy()
         self._init_canv()
-        # self.canvas.__init__(self, self.data_model.out_queue)
 
     def remove_image(self) -> None:
         if len(self.data_model.gallery) == 1:
@@ -535,6 +541,10 @@ class MenuBar(tk.Menu):
         self.app.data_model.train_()
 
     def _apply_classifier(self) -> None:
+        if self.app.data_model.classifier is None:
+            mb.showwarning(title="No classifier", message="Train or load a classifier first!")
+            return
+
         self.app.data_model.apply_()
 
     def _load_classifier(self) -> None:
@@ -550,13 +560,17 @@ class MenuBar(tk.Menu):
         if f is None:
             return
         else:
+            if self.app.data_model.classifier is None:
+                mb.showwarning(title="No classifier", message="Train or load a classifier first!")
+                return
             classifier = self.app.data_model.classifier
-            assert classifier is not None
             classifier.save(f)
 
     def _save_segmentation(self) -> None:
         n = self.app.current_piece_idx.get()
-        f = fd.asksaveasfilename(initialfile=f"seg_{n}.tiff", defaultextension=".tiff")
+        piece = self.app.data_model.gallery[n]
+
+        f = fd.asksaveasfilename(initialfile=f"{piece.filename}_seg.tiff", defaultextension=".tiff")
         if f is None:
             return
         else:
@@ -565,7 +579,9 @@ class MenuBar(tk.Menu):
 
     def _save_labels(self) -> None:
         n = self.app.current_piece_idx.get()
-        f = fd.asksaveasfilename(initialfile=f"seg_{n}.tiff", defaultextension=".tiff")
+        piece = self.app.data_model.gallery[n]
+
+        f = fd.asksaveasfilename(initialfile=f"{piece.filename}_labels.tiff", defaultextension=".tiff")
         if f is None:
             return
         else:

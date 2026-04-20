@@ -116,6 +116,8 @@ class Piece:
     labelled: bool = False
     segmented: bool = False
 
+    filename: str = ""
+
     def __post_init__(self) -> None:
         """Set these here because dataclasses don't like mutable objects being assigned in __init__."""
         shape: tuple[int, ...] = self.img_arr.shape
@@ -182,6 +184,7 @@ class DataModel(object):
         extension: str = filepath.split(".")[-1]
         if extension.lower() not in ["png", "jpg", "jpeg", "tif", "bmp", "tiff"]:
             raise Exception(f".{extension} is not a valid image file format")
+        filename = filepath.split(".")[0].split("/")[-1]
 
         if extension.lower() in ["tiff", "tif"]:
             np_array: np.ndarray = imread(filepath)  # type: ignore
@@ -194,7 +197,7 @@ class DataModel(object):
             np_array = np.array(pil_image)
             pil_image = pil_image.convert("RGBA")
 
-        new_piece = Piece(pil_image, np_array, [], False, False)
+        new_piece = Piece(pil_image, np_array, [], False, False, filename)
         if add_to_gallery:
             self.gallery.append(new_piece)
 
