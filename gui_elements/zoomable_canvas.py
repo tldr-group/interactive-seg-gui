@@ -43,9 +43,7 @@ class CanvasImage:
         # self.app = app
         self.imscale = 1.0  # scale for the canvas image zoom, public for outer classes
         self.__delta = 1.3  # zoom magnitude
-        self.__filter = (
-            Image.NEAREST
-        )  # could be: NEAREST, BILINEAR, BICUBIC and ANTIALIAS
+        self.__filter = Image.NEAREST  # could be: NEAREST, BILINEAR, BICUBIC and ANTIALIAS
         self.__previous_state = 0  # previous state of the keyboard
         # Create ImageFrame in placeholder widget
         self.__imframe = ttk.Frame(placeholder)  # placeholder of the ImageFrame object
@@ -73,25 +71,15 @@ class CanvasImage:
     def set_current_image(self, pil_image, new=False):
         if new:
             # Bind events to the Canvas
-            self.canvas.bind(
-                "<Configure>", lambda event: self._show_image()
-            )  # canvas is resized
-            self.canvas.bind(
-                "<Control_L>", self.__move_from
-            )  # remember canvas position
-            self.canvas.bind(
-                "<Control-Motion>", self.__move_to
-            )  # move canvas to the new position
-            self.canvas.bind(
-                "<MouseWheel>", self.__wheel
-            )  # zoom for Windows and MacOS, but not Linux
-            self.canvas.bind(
-                "<Button-4>", self.__wheel
-            )  # zoom for Linux, wheel scroll up
-            self.canvas.bind(
-                "<Button-5>", self.__wheel
-            )  # zoom for Linux, wheel scroll down
+            self.canvas.bind("<Configure>", lambda event: self._show_image())  # canvas is resized
+            self.canvas.bind("<Control_L>", self.__move_from)  # remember canvas position
+            self.canvas.bind("<Control-Motion>", self.__move_to)  # move canvas to the new position
+            self.canvas.bind("<MouseWheel>", self.__wheel)  # zoom for Windows and MacOS, but not Linux
+            self.canvas.bind("<Button-4>", self.__wheel)  # zoom for Linux, wheel scroll up
+            self.canvas.bind("<Button-5>", self.__wheel)  # zoom for Linux, wheel scroll down
             self.container = self.canvas.create_rectangle((0, 0, 700, 500), width=0)
+            # w, h = pil_image.size
+            # self.container = self.canvas.create_rectangle((0, 0, w, h), width=0)
 
         # Decide if this image huge or not
         self.__huge = False  # huge or not
@@ -102,8 +90,7 @@ class CanvasImage:
         self.__original_image = pil_image
         self.imwidth, self.imheight = self.__image.size  # public for outer classes
         if (
-            self.imwidth * self.imheight > self.__huge_size * self.__huge_size
-            and self.__image.tile[0][0] == "raw"
+            self.imwidth * self.imheight > self.__huge_size * self.__huge_size and self.__image.tile[0][0] == "raw"
         ):  # only raw images could be tiled
             self.__huge = True  # image is huge
             self.__offset = self.__image.tile[0][2]  # initial tile offset
@@ -117,9 +104,7 @@ class CanvasImage:
         # Create image pyramid
         self.__pyramid = [self.smaller()] if self.__huge else [self.__original_image]
         # Set ratio coefficient for image pyramid
-        self.__ratio = (
-            max(self.imwidth, self.imheight) / self.__huge_size if self.__huge else 1.0
-        )
+        self.__ratio = max(self.imwidth, self.imheight) / self.__huge_size if self.__huge else 1.0
         self.__curr_img = 0  # current image from the pyramid
         self.__scale = self.imscale * self.__ratio  # image pyramide scale
         self.__reduction = 2  # reduction degree of image pyramid
@@ -127,14 +112,10 @@ class CanvasImage:
         while w > 512 and h > 512:  # top pyramid image is around 512 pixels in size
             w /= self.__reduction  # divide on reduction degree
             h /= self.__reduction  # divide on reduction degree
-            self.__pyramid.append(
-                self.__pyramid[-1].resize((int(w), int(h)), self.__filter)
-            )
+            self.__pyramid.append(self.__pyramid[-1].resize((int(w), int(h)), self.__filter))
         # Put image into container rectangle and use it to set proper coordinates to the image
         if new:
-            self.container = self.canvas.create_rectangle(
-                (0, 0, self.imwidth, self.imheight), width=0
-            )
+            self.container = self.canvas.create_rectangle((0, 0, self.imwidth, self.imheight), width=0)
         self._show_image()  # show image on the canvas
         self.canvas.focus_set()  # set focus on the canvas
 
@@ -161,19 +142,13 @@ class CanvasImage:
             print("\rOpening image: {j} from {n}".format(j=j, n=n), end="")
             band = min(self.__band_width, self.imheight - i)  # width of the tile band
             self.__tile[1][3] = band  # set band width
-            self.__tile[2] = (
-                self.__offset + self.imwidth * i * 3
-            )  # tile offset (3 bytes per pixel)
+            self.__tile[2] = self.__offset + self.imwidth * i * 3  # tile offset (3 bytes per pixel)
             self.__image.close()
-            self.__image = (
-                self.__original_image
-            )  # Image.open(self.path)  # reopen / reset image
+            self.__image = self.__original_image  # Image.open(self.path)  # reopen / reset image
             self.__image.size = (self.imwidth, band)  # set size of the tile band
             self.__image.tile = [self.__tile]  # set tile
             cropped = self.__image.crop((0, 0, self.imwidth, band))  # crop tile band
-            image.paste(
-                cropped.resize((w, int(band * k) + 1), self.__filter), (0, int(i * k))
-            )
+            image.paste(cropped.resize((w, int(band * k) + 1), self.__filter), (0, int(i * k)))
             i += band
             j += 1
         print("\r" + 30 * " " + "\r", end="")  # hide printed string
@@ -219,9 +194,7 @@ class CanvasImage:
             self.canvas.canvasx(self.canvas.winfo_width()),
             self.canvas.canvasy(self.canvas.winfo_height()),
         )
-        box_img_int = tuple(
-            map(int, box_image)
-        )  # convert to integer or it will not work properly
+        box_img_int = tuple(map(int, box_image))  # convert to integer or it will not work properly
         # Get scroll region box
         box_scroll = [
             min(box_img_int[0], box_canvas[0]),
@@ -238,37 +211,23 @@ class CanvasImage:
             box_scroll[1] = box_img_int[1]
             box_scroll[3] = box_img_int[3]
         # Convert scroll region to tuple and to integer
-        self.canvas.configure(
-            scrollregion=tuple(map(int, box_scroll))
-        )  # set scroll region
-        x1 = max(
-            box_canvas[0] - box_image[0], 0
-        )  # get coordinates (x1,y1,x2,y2) of the image tile
+        self.canvas.configure(scrollregion=tuple(map(int, box_scroll)))  # set scroll region
+        x1 = max(box_canvas[0] - box_image[0], 0)  # get coordinates (x1,y1,x2,y2) of the image tile
         y1 = max(box_canvas[1] - box_image[1], 0)
         x2 = min(box_canvas[2], box_image[2]) - box_image[0]
         y2 = min(box_canvas[3], box_image[3]) - box_image[1]
-        if (
-            int(x2 - x1) > 0 and int(y2 - y1) > 0
-        ):  # show image if it in the visible area
+        if int(x2 - x1) > 0 and int(y2 - y1) > 0:  # show image if it in the visible area
             if self.__huge and self.__curr_img < 0:  # show huge image
                 h = int((y2 - y1) / self.imscale)  # height of the tile band
                 self.__tile[1][3] = h  # set the tile band height
-                self.__tile[2] = (
-                    self.__offset + self.imwidth * int(y1 / self.imscale) * 3
-                )
+                self.__tile[2] = self.__offset + self.imwidth * int(y1 / self.imscale) * 3
                 self.__image.close()
-                self.__image = (
-                    self.__original_image
-                )  # Image.open(self.path)  # reopen / reset image
+                self.__image = self.__original_image  # Image.open(self.path)  # reopen / reset image
                 self.__image.size = (self.imwidth, h)  # set size of the tile band
                 self.__image.tile = [self.__tile]
-                image = self.__image.crop(
-                    (int(x1 / self.imscale), 0, int(x2 / self.imscale), h)
-                )
+                image = self.__image.crop((int(x1 / self.imscale), 0, int(x2 / self.imscale), h))
             else:  # show normal image
-                image = self.__pyramid[
-                    max(0, self.__curr_img)
-                ].crop(  # crop current img from pyramid
+                image = self.__pyramid[max(0, self.__curr_img)].crop(  # crop current img from pyramid
                     (
                         int(x1 / self.__scale),
                         int(y1 / self.__scale),
@@ -276,9 +235,7 @@ class CanvasImage:
                         int(y2 / self.__scale),
                     )
                 )
-            imagetk = ImageTk.PhotoImage(
-                image.resize((int(x2 - x1), int(y2 - y1)), self.__filter)
-            )
+            imagetk = ImageTk.PhotoImage(image.resize((int(x2 - x1), int(y2 - y1)), self.__filter))
             imageid = self.canvas.create_image(
                 max(box_canvas[0], box_img_int[0]),
                 max(box_canvas[1], box_img_int[1]),
@@ -286,9 +243,7 @@ class CanvasImage:
                 image=imagetk,
             )
             self.canvas.lower(imageid)  # set image into background
-            self.canvas.imagetk = (
-                imagetk  # keep an extra reference to prevent garbage-collection
-            )
+            self.canvas.imagetk = imagetk  # keep an extra reference to prevent garbage-collection
             # self.canvas.focus_set()  # set focus on the canvas
         self.canvas.focus_set()
 
@@ -330,9 +285,7 @@ class CanvasImage:
             scale *= self.__delta
         # Take appropriate image from the pyramid
         k = self.imscale * self.__ratio  # temporary coefficient
-        self.__curr_img = min(
-            (-1) * int(math.log(k, self.__reduction)), len(self.__pyramid) - 1
-        )
+        self.__curr_img = min((-1) * int(math.log(k, self.__reduction)), len(self.__pyramid) - 1)
         self.__scale = k * math.pow(self.__reduction, max(0, self.__curr_img))
         #
         self.canvas.scale("all", x, y, scale, scale)  # rescale all objects
@@ -346,9 +299,7 @@ class CanvasImage:
         Scrolling with the keyboard.
         Independent from the language of the keyboard, CapsLock, <Ctrl>+<key>, etc.
         """
-        if (
-            event.state - self.__previous_state == 4
-        ):  # means that the Control key is pressed
+        if event.state - self.__previous_state == 4:  # means that the Control key is pressed
             pass  # do nothing if Control key is pressed
         else:
             self.__previous_state = event.state  # remember the last keystroke state
@@ -383,9 +334,7 @@ class CanvasImage:
         if self.__huge:  # image is huge and not totally in RAM
             band = bbox[3] - bbox[1]  # width of the tile band
             self.__tile[1][3] = band  # set the tile height
-            self.__tile[2] = (
-                self.__offset + self.imwidth * bbox[1] * 3
-            )  # set offset of the band
+            self.__tile[2] = self.__offset + self.imwidth * bbox[1] * 3  # set offset of the band
             self.__image.close()
             self.__image = Image.open(self.path)  # reopen / reset image
             self.__image.size = (self.imwidth, band)  # set size of the tile band

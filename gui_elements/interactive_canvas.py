@@ -105,9 +105,7 @@ class InteractiveCanvas(CanvasImage):
         self.set_label_class(0)
 
     # %% CONVERSION
-    def _canvas_to_frac_coords(
-        self, canvas_x: int, canvas_y: int
-    ) -> tuple[float, float]:
+    def _canvas_to_frac_coords(self, canvas_x: int, canvas_y: int) -> tuple[float, float]:
         bbox = self.canvas.coords(self.container)
         dx, dy = bbox[2] - bbox[0], bbox[3] - bbox[1]
         frac_x, frac_y = (canvas_x - bbox[0]) / dx, (canvas_y - bbox[1]) / dy
@@ -118,9 +116,7 @@ class InteractiveCanvas(CanvasImage):
         frac_x, frac_y = self._canvas_to_frac_coords(canvas_x, canvas_y)
         return (int(frac_x * w), int(frac_y * h))
 
-    def _frac_to_canvas_coords(
-        self, frac_x: float, frac_y: float
-    ) -> tuple[float, float]:
+    def _frac_to_canvas_coords(self, frac_x: float, frac_y: float) -> tuple[float, float]:
         bbox = self.canvas.coords(self.container)
         dx, dy = bbox[2] - bbox[0], bbox[3] - bbox[1]
         canvas_x, canvas_y = (frac_x * dx) + bbox[0], (frac_y * dy) + bbox[1]
@@ -136,9 +132,7 @@ class InteractiveCanvas(CanvasImage):
         return (canvas_x, canvas_y)
 
     # %% DRAWING
-    def place_poly_point(
-        self, x: int, y: int, frac_x: float, frac_y: float, r: int
-    ) -> None:
+    def place_poly_point(self, x: int, y: int, frac_x: float, frac_y: float, r: int) -> None:
         """Draw oval at click. Draw line from prev point to new point. Append fractional coords of new point to list."""
         scaled_w = r * self.imscale
         self.canvas.create_oval(
@@ -171,9 +165,7 @@ class InteractiveCanvas(CanvasImage):
         self.canvas.delete("animated")
         prev_point_frac_coords = self.current_label_frac_points[-1]
         x0, y0 = self._frac_to_canvas_coords(*prev_point_frac_coords)
-        self.canvas.create_line(
-            x0, y0, x, y, fill=self.fill_colour, width=2.2, tags="animated"
-        )
+        self.canvas.create_line(x0, y0, x, y, fill=self.fill_colour, width=2.2, tags="animated")
 
     # %% LOGIC
     def inc_brush_size(self, val: int) -> None:
@@ -191,10 +183,12 @@ class InteractiveCanvas(CanvasImage):
         self.label_val.set(val)
         self.fill_colour = COLOURS[val]
 
-    def _bounds_check_return_coords(
-        self, event: tk.Event
-    ) -> tuple[int, int, float, float] | None:
-        bbox = self.canvas.coords(self.container)
+    def _bounds_check_return_coords(self, event: tk.Event) -> tuple[int, int, float, float] | None:
+        try:
+            bbox = self.canvas.coords(self.container)
+        except AttributeError:  # container not defined until image is set
+            return None
+
         x, y = int(self.canvas.canvasx(event.x)), int(self.canvas.canvasy(event.y))
         if bbox[0] < x < bbox[2] and bbox[1] < y < bbox[3]:
             frac_x, frac_y = self._canvas_to_frac_coords(x, y)
