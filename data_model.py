@@ -1,6 +1,7 @@
 import numpy as np
 from queue import Queue
 from tifffile import imread
+from sklearn.utils import compute_sample_weight
 
 from skimage.draw import ellipse
 from PIL import Image
@@ -34,13 +35,9 @@ from deep_feat_interop import deep_feats, DEEP_FEATS_AVAILABLE
 Point: TypeAlias = tuple[float, float]
 
 CWD = getcwd()
-# DEFAULT_FEAT_CONFIG = FeatureConfig(mean=True, minimum=True, maximum=True)
-# DEFAULT_TRAIN_CONFIG = TrainingConfig(DEFAULT_FEAT_CONFIG, CRF=True, classifier="xgb")
 CFG_PATH = dotenv_values()["CFG_PATH"]
 DEFAULT_TRAIN_CONFIG = load_training_config_json(CFG_PATH)
 print(DEFAULT_TRAIN_CONFIG)
-
-# set_start_method("spawn", force=True)
 
 
 @dataclass
@@ -62,7 +59,7 @@ def draw_points_get_arr(
 ) -> np.ndarray:
     temp_arr = np.zeros((box_h, box_w), dtype=np.int16) - 1
     for p in points:
-        rr, cc = ellipse(p[1] - y0, p[0] - x0, brush_width, brush_width)
+        rr, cc = ellipse(p[1] - y0, p[0] - x0, brush_width, brush_width, shape=(box_h, box_w))
         temp_arr[rr, cc] = label_val
     return temp_arr
 
@@ -152,8 +149,12 @@ def train_from_paths(feature_paths: list[str], labels: list[np.ndarray]) -> Clas
     print(feature_paths)
     fit, target = get_training_data(feature_paths, labels)
     fit, target = shuffle_sample_training_data(fit, target, tc.shuffle_data, tc.n_samples)
+    if tc.balance_classes:
+        sample_weights = compute_sample_weight("balanced", target)
+    else:
+        sample_weights = None
     classifier = get_model(tc.classifier, tc.classifier_params)
-    classifier = train(classifier, fit, target, sample_weight=None)
+    classifier = train(classifier, fit, target, sample_weight=sample_weights)
     return classifier
 
 
@@ -189,7 +190,7 @@ class DataModel(object):
             else:
                 pil_image = Image.fromarray(np_array).convert("RGBA")
         else:
-            pil_image = Image.open(filepath).convert("RGB")
+            pil_image = Image.open(filepath)
             np_array = np.array(pil_image)
             pil_image = pil_image.convert("RGBA")
 
@@ -234,7 +235,7 @@ class DataModel(object):
 
     # %% CLASSIFIER INTEROP
     def get_features(self, prev_n: int) -> None:
-        start_idx = max(0, prev_n - 1)
+        start_idx = max(0, prev_n)
         inds = [prev_n + i for i in range(len(self.gallery[start_idx:]))]
         pieces = [self.gallery[i] for i in inds]
         self._get_features(pieces, inds)
@@ -293,6 +294,6 @@ class DataModel(object):
 
     def reload_cfg(self, verbose: bool = True) -> None:
         global DEFAULT_TRAIN_CONFIG
-        DEFAULT_TRAIN_CONFIG = load_training_config_json(CFG_PATH, KEYS_TO_CLASSES)
+        DEFAULT_TRAIN_CONFIG = load_training_config_json(CFG_PATH)
         if verbose:
             print(DEFAULT_TRAIN_CONFIG)

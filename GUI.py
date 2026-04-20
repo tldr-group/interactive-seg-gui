@@ -265,7 +265,8 @@ class App(ttk.Frame):
         if new_val is None:
             new_val = self.current_piece_idx.get()
         new_piece = self.data_model.gallery[new_val]
-        self.set_canvas_image(new_piece, False)
+        self.set_canvas_image(new_piece, True)
+        self.current_piece_idx.set(new_val)
 
         self.needs_updating = True
 
@@ -305,7 +306,6 @@ class App(ttk.Frame):
 
         self.data_model.get_features(n_imgs_prev)
 
-    # def class_changed(self, number: int) -> None:
     def clear(self) -> None:
         current_piece = self.get_current_piece()
         current_piece.labels_arr *= 0
@@ -321,8 +321,17 @@ class App(ttk.Frame):
         self._init_canv()
         # self.canvas.__init__(self, self.data_model.out_queue)
 
-    # def remove_image(self) -> None:
-    #     self.ch
+    def remove_image(self) -> None:
+        if len(self.data_model.gallery) == 1:
+            self.remove_all()
+            return
+
+        idx = self.current_piece_idx.get()
+        new_idx = 1 if idx == 0 else idx - 1
+        self.set_current_pice(new_idx)
+        self.data_model.gallery.pop(idx)
+
+        self._init_bottombar(len(self.data_model.gallery))
 
     # %% CANVAS
     def set_canvas_image(self, piece: Piece | None, new: bool = False) -> None:
@@ -432,7 +441,7 @@ class MenuBar(tk.Menu):
 
         data_name_fn_pairs: list[tuple[str, Callable]] = [
             ("Add Image", self._load_images),
-            ("Remove Image", _foo),
+            ("Remove Image", self.app.remove_image),
             ("Remove All", self.app.remove_all),
             ("Load labels", self._load_labels),
             ("Load segmentation", self._load_seg),
@@ -448,8 +457,6 @@ class MenuBar(tk.Menu):
         ]
         classifier_menu = self._make_dropdown(classifier_name_fn_pairs)
         self.add_cascade(label="Classifier", menu=classifier_menu)
-
-        # self.add_command(label="Post-Process", command=_foo)  # type: ignore
 
         save_name_fn_pairs: list[tuple[str, Callable]] = [
             ("Save Segmentation", self._save_segmentation),
@@ -509,12 +516,6 @@ class MenuBar(tk.Menu):
             return
         else:
             self._load_arr_from_file(file_path, "labels")
-            # labels = load_labels(file_path)
-            # idx = self.app.current_piece_idx.get()
-            # piece = self.app.data_model.gallery[idx]
-            # piece.labels_arr = labels.astype(np.int16)
-            # piece.labelled = True
-            # self.app.needs_updating = True
 
     def _load_seg(self) -> None:
         file_path = open_file_dialog_return_fps(
