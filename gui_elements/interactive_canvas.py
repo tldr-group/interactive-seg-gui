@@ -55,6 +55,7 @@ class InteractiveCanvas(CanvasImage):
             self.canvas.bind(f"{i}", self._num_key_press)
 
     def set_current_image(self, pil_image, new=False) -> None:
+        self.image_available = False
         super().set_current_image(pil_image, new)
         self.image_available = True
         self.current_img_hw = (pil_image.height, pil_image.width)

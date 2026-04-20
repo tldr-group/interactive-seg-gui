@@ -78,6 +78,7 @@ class CanvasImage:
             self.canvas.bind("<Button-4>", self.__wheel)  # zoom for Linux, wheel scroll up
             self.canvas.bind("<Button-5>", self.__wheel)  # zoom for Linux, wheel scroll down
             self.container = self.canvas.create_rectangle((0, 0, 700, 500), width=0)
+            self.imscale = 1.0
             # w, h = pil_image.size
             # self.container = self.canvas.create_rectangle((0, 0, w, h), width=0)
 
