@@ -165,7 +165,7 @@ class DataModel(object):
         self.in_queue: MPQueue[Message] = MPQueue(maxsize=40)
         self.out_queue: Queue[Message] = Queue(maxsize=40)
 
-        init_msg = Message("NOTIF", "microSeg v0.01 04/03/25")
+        init_msg = Message("NOTIF", "ISG v0.01 04/03/25")
         self.out_queue.put(init_msg)
 
         self.gallery: list[Piece] = []

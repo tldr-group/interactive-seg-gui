@@ -442,7 +442,7 @@ class MenuBar(tk.Menu):
         )  # done s.t the menu bar is attached to the root (tk window) rather than the frame
         self.app = app
 
-        self.add_command(label="[microSeg]")
+        self.add_command(label="    [ ISG ]       ")
         self.add_separator()
 
         data_name_fn_pairs: list[tuple[str, Callable]] = [
