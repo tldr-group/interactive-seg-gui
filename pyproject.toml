@@ -4,7 +4,7 @@ version = "0.0.1"
 authors = [
   { name="Ronan Docherty", email="ronan.docherty18@imperial.ac.uk"},
 ]
-description = "ViT feature upsampling via CNNs"
+description = "MVP segmentation GUI for ISB"
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
@@ -15,6 +15,11 @@ classifiers = [
 dependencies = [
   "matplotlib>=3.10.0",
   "python-dotenv>=1.1.0",
+  "interactive_seg_backend @ git+https://github.com/tldr-group/interactive-seg-backend"
   ]
 [tool.setuptools]
 packages = ["gui_elements"]
+
+[project.optional-dependencies]
+gpu = ["interactive_seg_backend[gpu] @ git+https://github.com/tldr-group/interactive-seg-backend"]
+cpu = ["interactive_seg_backend[cpu] @ git+https://github.com/tldr-group/interactive-seg-backend"]

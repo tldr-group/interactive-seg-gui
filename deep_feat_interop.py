@@ -50,7 +50,7 @@ try:
             dino_chk=dino_chk_path,
             autoencoder_chk_or_cfg=ac_chk_path,
             device="cuda:0",
-            to_half=True,
+            to_half=False,
             add_flash_attn=False,
         )
     else:
